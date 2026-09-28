@@ -1,0 +1,53 @@
+{
+  "APP_NAME": "Khata",
+  "APP_SHORT_NAME": "Khata",
+  "APP_DESCRIPTION": "Shop khata, stock and vendor book",
+  "THEME_COLORS": {
+    "light": {
+      "primary": "#FFC107",
+      "onPrimary": "#1F1300",
+      "background": "#FFF8E1",
+      "surface": "#FFFFFF",
+      "border": "#F3E3B5",
+      "text": "#3E2723",
+      "muted": "#8D6E63",
+      "success": "#2E7D32",
+      "error": "#C62828",
+      "warning": "#EF6C00",
+      "info": "#1565C0"
+    },
+    "dark": {
+      "primary": "#FFC107",
+      "onPrimary": "#1F1300",
+      "background": "#17130C",
+      "surface": "#241E14",
+      "border": "#3A3021",
+      "text": "#FFF8E1",
+      "muted": "#BCAAA4",
+      "success": "#66BB6A",
+      "error": "#EF5350",
+      "warning": "#FFA726",
+      "info": "#42A5F5"
+    }
+  },
+  "TOAST_DURATION_MS": 3500,
+  "UI_LABELS": {
+    "home.title": "Welcome to Khata",
+    "home.subtitle": "Your shop book: stock, vendors and payments in one place.",
+    "home.status": "Setup status",
+    "home.configSource": "Settings source",
+    "home.configSource.remote": "Supabase (app_settings)",
+    "home.configSource.bootstrap": "Bootstrap file (Supabase not connected yet)",
+    "home.network": "Network",
+    "home.testToast": "Show test toast",
+    "network.online": "Online",
+    "network.offline": "Offline",
+    "theme.toggle": "Toggle dark mode",
+    "toast.dismiss": "Dismiss"
+  },
+  "TOAST_MESSAGES": {
+    "test": "Everything is wired up. Settings, theme and toasts are working.",
+    "offline": "You are offline. Changes will sync when you reconnect.",
+    "online": "Back online."
+  }
+}

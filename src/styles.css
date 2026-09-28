@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: ThemeService toggles .dark on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Tailwind colors point at runtime CSS variables that ThemeService fills from
+ * app_settings THEME_COLORS. No color values live in the codebase.
+ */
+@theme inline {
+  --color-primary: var(--app-primary);
+  --color-on-primary: var(--app-on-primary);
+  --color-background: var(--app-background);
+  --color-surface: var(--app-surface);
+  --color-border: var(--app-border);
+  --color-text: var(--app-text);
+  --color-muted: var(--app-muted);
+  --color-success: var(--app-success);
+  --color-error: var(--app-error);
+  --color-warning: var(--app-warning);
+  --color-info: var(--app-info);
+}
+
+@layer base {
+  html,
+  body {
+    @apply bg-background text-text min-h-dvh antialiased;
+  }
+}

@@ -1,0 +1,53 @@
+name: CI / Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:index
+      - run: npm test -- --watch=false
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/khatabk/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v5
+        with:
+          name: dist
+          path: dist/khatabk/browser
+      - name: Deploy preview (pull request)
+        if: github.event_name == 'pull_request'
+        run: npx netlify deploy --dir=dist/khatabk/browser --no-build --alias=pr-${{ github.event.number }} --message="PR #${{ github.event.number }}"
+      - name: Deploy production (main)
+        if: github.event_name != 'pull_request'
+        run: npx netlify deploy --dir=dist/khatabk/browser --no-build --prod --message="${{ github.sha }}"
