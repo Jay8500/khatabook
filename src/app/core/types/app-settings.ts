@@ -9,6 +9,14 @@ export interface ThemeColors {
 
 export type ThemeMode = keyof ThemeColors;
 
+/** One entry of app_settings APP_ICONS, in web manifest icon format. */
+export interface ManifestIcon {
+  src: string;
+  sizes: string;
+  type: string;
+  purpose: string;
+}
+
 export type ConfigSource = 'remote' | 'bootstrap';
 
 /** Payload shape exchanged with the encrypt-rpc edge function. */

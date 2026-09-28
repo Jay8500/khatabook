@@ -17,6 +17,7 @@ export class ConfigService {
   readonly settings = this._settings.asReadonly();
   readonly source = this._source.asReadonly();
   readonly appName = computed(() => this.get<string>('APP_NAME') ?? '');
+  readonly logoUrl = computed(() => this.get<string>('APP_LOGO_URL'));
 
   async load(): Promise<void> {
     if (this.supabase.isConfigured) {

@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { ConfigService } from './core/services/config.service';
 import { NetworkService } from './core/services/network.service';
 import { ThemeService } from './core/services/theme.service';
@@ -7,7 +7,7 @@ import { ToastHost } from './shared/toast-host/toast-host';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastHost],
+  imports: [RouterLink, RouterOutlet, ToastHost],
   templateUrl: './app.html',
 })
 export class App {

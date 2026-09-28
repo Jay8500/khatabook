@@ -6,12 +6,12 @@ import { ToastService } from '../../core/services/toast.service';
 @Component({
   selector: 'app-home',
   template: `
-    <section class="rounded-2xl bg-primary px-6 py-10 text-on-primary shadow-sm">
-      <h1 class="text-3xl font-bold tracking-tight">{{ config.label('home.title') }}</h1>
+    <section class="rounded-2xl bg-primary px-5 py-8 text-on-primary shadow-sm sm:px-8 sm:py-12">
+      <h1 class="text-2xl font-bold tracking-tight sm:text-4xl">{{ config.label('home.title') }}</h1>
       <p class="mt-2 max-w-prose opacity-80">{{ config.label('home.subtitle') }}</p>
     </section>
 
-    <section class="mt-6 rounded-2xl border border-border bg-surface p-6">
+    <section class="mt-6 rounded-2xl border border-border bg-surface p-5 sm:p-6">
       <h2 class="text-lg font-semibold">{{ config.label('home.status') }}</h2>
       <dl class="mt-4 grid gap-4 sm:grid-cols-2">
         <div class="rounded-xl bg-background p-4">
@@ -28,7 +28,7 @@ import { ToastService } from '../../core/services/toast.service';
 
       <button
         type="button"
-        class="mt-6 rounded-xl bg-primary px-4 py-2 font-medium text-on-primary hover:opacity-90"
+        class="mt-6 w-full rounded-xl bg-primary px-4 py-3 font-medium sm:w-auto sm:py-2 text-on-primary hover:opacity-90"
         (click)="toast.show('test', 'success')"
       >
         {{ config.label('home.testToast') }}

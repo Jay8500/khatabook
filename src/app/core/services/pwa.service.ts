@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { ThemeColors } from '../types/app-settings';
+import { ManifestIcon, ThemeColors } from '../types/app-settings';
 import { ConfigService } from './config.service';
 
 /**
@@ -30,11 +30,10 @@ export class PwaService {
       scope: base.href,
       theme_color: light['primary'],
       background_color: light['background'],
-      icons: [72, 96, 128, 144, 152, 192, 384, 512].map((size) => ({
-        src: new URL(`icons/icon-${size}x${size}.png`, base).href,
-        sizes: `${size}x${size}`,
-        type: 'image/png',
-        purpose: 'maskable any',
+      // Blob manifests resolve relative URLs against blob:, so make icon paths absolute.
+      icons: (this.config.get<ManifestIcon[]>('APP_ICONS') ?? []).map((icon) => ({
+        ...icon,
+        src: new URL(icon.src, base).href,
       })),
     };
     const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });

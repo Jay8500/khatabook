@@ -1,7 +1,12 @@
 <div class="flex min-h-dvh flex-col">
-  <header class="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
+  <header class="sticky top-0 z-10 border-b border-border bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-      <span class="text-lg font-bold tracking-tight">{{ config.appName() }}</span>
+      <a routerLink="/" class="flex min-w-0 items-center gap-2">
+        @if (config.logoUrl(); as logo) {
+          <img [src]="logo" [alt]="config.label('app.logoAlt')" class="size-8 shrink-0" />
+        }
+        <span class="truncate text-lg font-bold tracking-tight">{{ config.appName() }}</span>
+      </a>
 
       <div class="flex items-center gap-2">
         <span
