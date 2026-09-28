@@ -41,6 +41,23 @@
   <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
     <router-outlet />
   </main>
+
+  @if (config.brand(); as brand) {
+    <footer class="pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2">
+      <a
+        [attr.href]="brand.url"
+        target="_blank"
+        rel="noopener"
+        class="mx-auto flex w-fit items-center gap-1.5 text-xs text-muted hover:text-text"
+      >
+        @if (brand.logoUrl) {
+          <img [src]="brand.logoUrl" alt="" class="size-3.5" />
+        }
+        {{ config.label('footer.poweredBy') }}
+        <span class="font-semibold">{{ brand.name }}</span>
+      </a>
+    </footer>
+  }
 </div>
 
 <app-toast-host />

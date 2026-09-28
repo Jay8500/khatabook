@@ -9,6 +9,13 @@ export interface ThemeColors {
 
 export type ThemeMode = keyof ThemeColors;
 
+/** app_settings BRAND: the "Powered by" credit in the footer. */
+export interface Brand {
+  name: string;
+  url?: string;
+  logoUrl?: string;
+}
+
 /** One entry of app_settings APP_ICONS, in web manifest icon format. */
 export interface ManifestIcon {
   src: string;

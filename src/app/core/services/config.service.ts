@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { AppSettings, ConfigSource } from '../types/app-settings';
+import { AppSettings, Brand, ConfigSource } from '../types/app-settings';
 import { SupabaseService } from './supabase.service';
 
 /**
@@ -18,6 +18,7 @@ export class ConfigService {
   readonly source = this._source.asReadonly();
   readonly appName = computed(() => this.get<string>('APP_NAME') ?? '');
   readonly logoUrl = computed(() => this.get<string>('APP_LOGO_URL'));
+  readonly brand = computed(() => this.get<Brand>('BRAND'));
 
   async load(): Promise<void> {
     if (this.supabase.isConfigured) {

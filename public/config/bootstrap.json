@@ -2,7 +2,7 @@
   "APP_NAME": "Khata",
   "APP_SHORT_NAME": "Khata",
   "APP_DESCRIPTION": "Shop khata, stock and vendor book",
-  "APP_LOGO_URL": "icons/icon-192x192.png",
+  "APP_LOGO_URL": "favicon.svg",
   "APP_ICONS": [
     {
       "src": "icons/icon-72x72.png",
@@ -65,6 +65,11 @@
       "purpose": "maskable"
     }
   ],
+  "BRAND": {
+    "name": "Spread Apps",
+    "url": "https://spreadapps.in",
+    "logoUrl": "brand/spreadapps-logo.svg"
+  },
   "THEME_COLORS": {
     "light": {
       "primary": "#FFC107",
@@ -107,7 +112,8 @@
     "network.offline": "Offline",
     "theme.toggle": "Toggle dark mode",
     "toast.dismiss": "Dismiss",
-    "app.logoAlt": "Logo"
+    "app.logoAlt": "Logo",
+    "footer.poweredBy": "Powered by"
   },
   "TOAST_MESSAGES": {
     "test": "Everything is wired up. Settings, theme and toasts are working.",
