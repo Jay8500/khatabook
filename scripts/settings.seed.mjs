@@ -274,6 +274,13 @@ const toasts = {
   photoUpdated: 'Photo updated.',
   photoFailed: 'Could not upload the photo.',
   remindersChecked: '{count} new reminder(s) created.',
+  invalidPhone: 'Enter a valid {digits}-digit mobile number.',
+  invalidOtpLength: 'Enter the {digits}-digit code.',
+  otpSendFailed: 'Could not send the code. Please try again.',
+  'auth.otp_expired': 'Wrong or expired code. Check it and try again.',
+  'auth.over_sms_send_rate_limit': 'Please wait a few seconds before asking for a new code.',
+  'auth.over_request_rate_limit': 'Too many tries. Please wait a minute and try again.',
+  'auth.sms_send_failed': 'Could not send the code. Please try again.',
   noNewReminders: 'No new reminders. Stock looks fine.',
 };
 
@@ -336,6 +343,8 @@ const textVariables = {
   'UI_LABELS.profile.whatsappText': [v('username', 'Username', 'jay'), v('shop', 'Shop name', 'Lakshmi Kirana')],
   'UI_LABELS.settings.items': [v('count', 'Number', '12')],
   'TOAST_MESSAGES.remindersChecked': [v('count', 'Number of reminders', '2')],
+  'TOAST_MESSAGES.invalidPhone': [v('digits', 'Number of digits', '10')],
+  'TOAST_MESSAGES.invalidOtpLength': [v('digits', 'Number of digits', '6')],
   OTP_SMS_TEMPLATE: [v('otp', 'Login code', '482913')],
 };
 
@@ -369,6 +378,8 @@ const SETTINGS = [
 
   // Login
   ['DEFAULT_COUNTRY_CODE', '+91', 'public', 'login', 'Country code', 'Shown before the mobile number on the login screen, e.g. +91.'],
+  ['PHONE_DIGITS', 10, 'public', 'login', 'Mobile number length', 'How many digits a mobile number has (without the country code). The login screen checks this.'],
+  ['OTP_LENGTH', 6, 'public', 'login', 'Login code length', 'How many digits the login code has. Must match the OTP length in Supabase Auth settings.'],
   ['OTP_SMS_TEMPLATE', 'Your Khata login code is {otp}', 'admin', 'login', 'OTP SMS text', 'Text of the login SMS. {otp} is replaced with the code.'],
   ['SMS_PROVIDER', { provider: 'log' }, 'admin', 'login', 'SMS provider', 'How login codes are delivered. "log" = not sent, only visible in the Supabase send-sms logs (testing). Connect a real SMS provider before launch.'],
   ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'login', 'Admin role', 'Role given to the numbers in Admin phones.'],

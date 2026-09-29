@@ -24,8 +24,9 @@ import { ToastService } from '../../core/services/toast.service';
                   autocomplete="tel-national"
                   class="w-full bg-transparent px-3 py-3 text-lg tracking-wide outline-none"
                   [placeholder]="config.label('login.phonePlaceholder')"
+                  [attr.maxlength]="phoneDigits || null"
                   [value]="phone()"
-                  (input)="phone.set(digits($any($event.target).value))"
+                  (input)="phone.set(digits($any($event.target).value, phoneDigits))"
                   required
                 />
               </div>
@@ -44,8 +45,9 @@ import { ToastService } from '../../core/services/toast.service';
                 inputmode="numeric"
                 autocomplete="one-time-code"
                 class="w-full rounded-xl border border-border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-primary"
+                [attr.maxlength]="otpLength || null"
                 [value]="otp()"
-                (input)="otp.set(digits($any($event.target).value))"
+                (input)="otp.set(digits($any($event.target).value, otpLength))"
                 required
               />
             </label>
@@ -77,9 +79,22 @@ export class Login {
   protected readonly phone = signal('');
   protected readonly otp = signal('');
   protected readonly busy = signal(false);
+  /** Expected lengths from app_settings (PHONE_DIGITS, OTP_LENGTH); 0 = not checked. */
+  protected readonly phoneDigits = this.config.get<number>('PHONE_DIGITS') ?? 0;
+  protected readonly otpLength = this.config.get<number>('OTP_LENGTH') ?? 0;
 
-  protected digits(value: string): string {
-    return value.replace(/\D/g, '');
+  protected digits(value: string, max = 0): string {
+    const d = value.replace(/\D/g, '');
+    return max ? d.slice(0, max) : d;
+  }
+
+  /** Supabase auth error code -> TOAST_MESSAGES "auth.<code>", else the fallback key. */
+  private authError(err: unknown, fallback: string): void {
+    const code = (err as { code?: string } | null)?.code;
+    const key = code ? `auth.${code}` : '';
+    const known = key && this.config.get<Record<string, string>>('TOAST_MESSAGES')?.[key];
+    console.error(err);
+    this.toast.show(known ? key : fallback, 'error');
   }
 
   protected fullPhone(): string {
@@ -87,27 +102,35 @@ export class Login {
   }
 
   protected async send(): Promise<void> {
+    if (this.phoneDigits && this.phone().length !== this.phoneDigits) {
+      this.toast.show('invalidPhone', 'warning', { digits: this.phoneDigits });
+      return;
+    }
     this.busy.set(true);
     try {
       await this.auth.sendOtp(this.fullPhone());
       this.step.set('otp');
       this.toast.show('otpSent', 'success');
     } catch (err) {
-      this.toast.error(err);
+      this.authError(err, 'otpSendFailed');
     } finally {
       this.busy.set(false);
     }
   }
 
   protected async verify(): Promise<void> {
+    if (this.otpLength && this.otp().length !== this.otpLength) {
+      this.toast.show('invalidOtpLength', 'warning', { digits: this.otpLength });
+      return;
+    }
     this.busy.set(true);
     try {
       await this.auth.verifyOtp(this.fullPhone(), this.otp());
       this.toast.show('loginSuccess', 'success');
       await this.router.navigateByUrl(this.auth.needsOnboarding() ? '/onboarding' : '/');
     } catch (err) {
-      this.toast.show('loginFailed', 'error');
-      console.error(err);
+      this.otp.set('');
+      this.authError(err, 'loginFailed');
     } finally {
       this.busy.set(false);
     }

@@ -6,6 +6,8 @@
   "LOCALE": "en-IN",
   "CURRENCY_CODE": "INR",
   "DEFAULT_COUNTRY_CODE": "+91",
+  "PHONE_DIGITS": 10,
+  "OTP_LENGTH": 6,
   "THEME_COLORS": {
     "light": {
       "primary": "#0E9E86",
@@ -334,6 +336,8 @@
     "settingName.TICKET_STATUSES": "Ticket statuses",
     "settingName.PRICE_RULES": "Bill pricing rules",
     "settingName.DEFAULT_COUNTRY_CODE": "Country code",
+    "settingName.PHONE_DIGITS": "Mobile number length",
+    "settingName.OTP_LENGTH": "Login code length",
     "settingName.OTP_SMS_TEMPLATE": "OTP SMS text",
     "settingName.SMS_PROVIDER": "SMS provider",
     "settingName.ADMIN_ROLE_NAME": "Admin role",
@@ -380,6 +384,13 @@
     "photoUpdated": "Photo updated.",
     "photoFailed": "Could not upload the photo.",
     "remindersChecked": "{count} new reminder(s) created.",
+    "invalidPhone": "Enter a valid {digits}-digit mobile number.",
+    "invalidOtpLength": "Enter the {digits}-digit code.",
+    "otpSendFailed": "Could not send the code. Please try again.",
+    "auth.otp_expired": "Wrong or expired code. Check it and try again.",
+    "auth.over_sms_send_rate_limit": "Please wait a few seconds before asking for a new code.",
+    "auth.over_request_rate_limit": "Too many tries. Please wait a minute and try again.",
+    "auth.sms_send_failed": "Could not send the code. Please try again.",
     "noNewReminders": "No new reminders. Stock looks fine."
   }
 }
