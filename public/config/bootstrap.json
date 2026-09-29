@@ -106,6 +106,7 @@
       "purpose": "maskable"
     }
   ],
+  "UPDATE_CHECK_SECONDS": 60,
   "UI_LABELS": {
     "app.logoAlt": "Logo",
     "footer.poweredBy": "Powered by",
@@ -314,6 +315,8 @@
     "messages.group.adminPhones": "Admin phones screen",
     "messages.group.messages": "Texts & messages screen",
     "messages.group.other": "Other",
+    "update.available": "A new version of the app is ready.",
+    "update.now": "Update",
     "admin.loginCodes": "Login codes",
     "loginCodes.title": "Login codes",
     "loginCodes.hint": "When someone taps Send OTP, their code shows here. Tap \"Send on WhatsApp\" to send it to them. Codes disappear after they log in or when they expire.",
@@ -355,6 +358,7 @@
     "settingName.OTP_SMS_TEMPLATE": "OTP SMS text",
     "settingName.SMS_PROVIDER": "SMS provider",
     "settingName.LOGIN_CODE_MINUTES": "Login code time",
+    "settingName.LOGIN_CODE_POLL_SECONDS": "Login code check",
     "settingName.ADMIN_ROLE_NAME": "Admin role",
     "settingName.DEFAULT_ROLE_NAME": "Customer role",
     "settingName.DEFAULT_THEME": "Default mode",
@@ -367,6 +371,8 @@
     "settingName.AVATARS_BUCKET": "Profile photo storage",
     "settingName.BILL_IMAGE": "Bill photo size",
     "settingName.AVATAR_IMAGE": "Profile photo rules",
+    "settingName.UPDATE_CHECK_SECONDS": "Update check",
+    "settingName.CONTEXT_REFRESH_SECONDS": "Permission refresh",
     "settingName.SETTING_CHOICES": "Setting choices",
     "settingName.QR_SCANNER": "QR scanner",
     "settingName.MESSAGE_SETTINGS": "Text groups",
@@ -405,7 +411,7 @@
     "remindersChecked": "{count} new reminder(s) created.",
     "invalidPhone": "Enter a valid {digits}-digit mobile number.",
     "codeCopied": "Code copied.",
-    "newLoginCode": "New login code for {phone}.",
+    "newLoginCode": "New login code for {phone}. Open Admin → Login codes.",
     "invalidOtpLength": "Enter the {digits}-digit code.",
     "otpSendFailed": "Could not send the code. Please try again.",
     "auth.otp_expired": "Wrong or expired code. Check it and try again.",

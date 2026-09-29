@@ -6,7 +6,9 @@ import { BOTTOM_BAR_SIZE, NAV } from './app.routes';
 import { AuthService } from './core/services/auth.service';
 import { ConfigService } from './core/services/config.service';
 import { NetworkService } from './core/services/network.service';
+import { LoginCodeWatchService } from './core/services/login-code-watch.service';
 import { ThemeService } from './core/services/theme.service';
+import { UpdateService } from './core/services/update.service';
 import { Avatar } from './shared/avatar/avatar';
 import { BrandCredit } from './shared/brand-credit/brand-credit';
 import { Icon } from './shared/icon/icon';
@@ -23,6 +25,14 @@ export class App {
   protected readonly network = inject(NetworkService);
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly updates = inject(UpdateService);
+  private readonly codeWatch = inject(LoginCodeWatchService);
+
+  /** Red count on nav items, e.g. pending login codes on Admin. */
+  protected readonly badges = computed<Record<string, number>>(() => ({ '/admin': this.codeWatch.pending() }));
+  protected readonly moreBadge = computed(() =>
+    this.moreItems().reduce((sum, item) => sum + (this.badges()[item.path] ?? 0), 0),
+  );
 
   private readonly url = toSignal(
     this.router.events.pipe(

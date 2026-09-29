@@ -1,4 +1,10 @@
 <div class="flex min-h-dvh flex-col">
+  @if (updates.ready()) {
+    <button type="button" class="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-on-primary" (click)="updates.apply()">
+      {{ config.label('update.available') }}
+      <span class="rounded-full bg-on-primary/20 px-2.5 py-0.5 font-semibold">{{ config.label('update.now') }}</span>
+    </button>
+  }
   <header class="sticky top-0 z-10 border-b border-border bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur">
     <div class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
       <a routerLink="/" class="flex min-w-0 items-center gap-2">
@@ -61,6 +67,9 @@
           >
             <app-icon [name]="item.icon" class="!size-4" />
             {{ config.label(item.label) }}
+            @if (badges()[item.path]) {
+              <span class="grid min-w-5 place-items-center rounded-full bg-error px-1.5 text-[11px] font-bold text-white">{{ badges()[item.path] }}</span>
+            }
           </a>
         }
       </nav>
@@ -90,7 +99,12 @@
             class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted"
             (click)="moreOpen.set(false)"
           >
-            <span class="grid h-7 w-12 place-items-center rounded-full transition"><app-icon [name]="item.icon" /></span>
+            <span class="relative grid h-7 w-12 place-items-center rounded-full transition">
+              <app-icon [name]="item.icon" />
+              @if (badges()[item.path]) {
+                <span class="absolute -top-1 right-1.5 grid min-w-4 place-items-center rounded-full bg-error px-1 text-[10px] font-bold leading-4 text-white">{{ badges()[item.path] }}</span>
+              }
+            </span>
             {{ config.label(item.label) }}
           </a>
         }
@@ -101,7 +115,12 @@
             [class]="moreOpen() || moreActive() ? 'text-primary' : 'text-muted'"
             (click)="moreOpen.set(!moreOpen())"
           >
-            <span class="grid h-7 w-12 place-items-center rounded-full transition" [class.bg-primary/15]="moreOpen() || moreActive()"><app-icon name="more" /></span>
+            <span class="relative grid h-7 w-12 place-items-center rounded-full transition" [class.bg-primary/15]="moreOpen() || moreActive()">
+              <app-icon name="more" />
+              @if (moreBadge()) {
+                <span class="absolute -top-1 right-1.5 grid min-w-4 place-items-center rounded-full bg-error px-1 text-[10px] font-bold leading-4 text-white">{{ moreBadge() }}</span>
+              }
+            </span>
             {{ config.label('nav.more') }}
           </button>
         }
@@ -123,6 +142,9 @@
             >
               <app-icon [name]="item.icon" />
               {{ config.label(item.label) }}
+              @if (badges()[item.path]) {
+                <span class="ml-auto grid min-w-5 place-items-center rounded-full bg-error px-1.5 text-xs font-bold text-white">{{ badges()[item.path] }}</span>
+              }
             </a>
           }
         </div>

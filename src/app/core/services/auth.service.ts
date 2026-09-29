@@ -47,6 +47,16 @@ export class AuthService {
         console.error('Could not load user context', err);
       }
     }
+
+    // Role or permission changes (e.g. added to Admin phones) apply when the app is
+    // opened again, without logging out.
+    let last = Date.now();
+    document.addEventListener('visibilitychange', () => {
+      const minGap = (this.config.get<number>('CONTEXT_REFRESH_SECONDS') ?? 60) * 1000;
+      if (document.visibilityState !== 'visible' || !this.isLoggedIn() || Date.now() - last < minGap) return;
+      last = Date.now();
+      this.loadContext().catch((err) => console.error(err));
+    });
   }
 
   can(permission: string): boolean {

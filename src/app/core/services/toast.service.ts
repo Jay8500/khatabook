@@ -19,13 +19,20 @@ export class ToastService {
   private nextId = 0;
   readonly toasts = this._toasts.asReadonly();
 
-  show(messageKey: string, type: ToastType = 'info', vars?: Record<string, unknown>, image?: string): void {
+  /** sticky: stays until dismissed (for alerts someone must act on). */
+  show(
+    messageKey: string,
+    type: ToastType = 'info',
+    vars?: Record<string, unknown>,
+    image?: string,
+    sticky = false,
+  ): void {
     const text = format(this.config.message('TOAST_MESSAGES', messageKey), vars);
     const toast: Toast = { id: ++this.nextId, type, text, image };
     this._toasts.update((list) => [...list, toast]);
 
     const duration = this.config.get<number>('TOAST_DURATION_MS');
-    if (duration) setTimeout(() => this.dismiss(toast.id), duration);
+    if (duration && !sticky) setTimeout(() => this.dismiss(toast.id), duration);
   }
 
   /** Uses the error's message as a TOAST_MESSAGES key when one exists, else the generic 'error'. */

@@ -240,6 +240,8 @@ const labels = {
   'messages.group.messages': 'Texts & messages screen',
   'messages.group.other': 'Other',
 
+  'update.available': 'A new version of the app is ready.',
+  'update.now': 'Update',
   'admin.loginCodes': 'Login codes',
   'loginCodes.title': 'Login codes',
   'loginCodes.hint': 'When someone taps Send OTP, their code shows here. Tap "Send on WhatsApp" to send it to them. Codes disappear after they log in or when they expire.',
@@ -291,7 +293,7 @@ const toasts = {
   remindersChecked: '{count} new reminder(s) created.',
   invalidPhone: 'Enter a valid {digits}-digit mobile number.',
   codeCopied: 'Code copied.',
-  newLoginCode: 'New login code for {phone}.',
+  newLoginCode: 'New login code for {phone}. Open Admin → Login codes.',
   invalidOtpLength: 'Enter the {digits}-digit code.',
   otpSendFailed: 'Could not send the code. Please try again.',
   'auth.otp_expired': 'Wrong or expired code. Check it and try again.',
@@ -318,6 +320,7 @@ const theme = {
 // Earlier default values. If a setting still holds one of these (no admin edit), it is
 // switched to the current default.
 const PREVIOUS_DEFAULTS = {
+  LOGIN_CODE_MINUTES: [5],
   AVATAR_IMAGE: [{ max_px: 512, quality: 0.85 }],
   SMS_PROVIDER: [{ provider: 'log' }],
   THEME_COLORS: [
@@ -339,7 +342,7 @@ const PREVIOUS_DEFAULTS = {
 // Earlier default wording of individual texts ("<SETTING>": { "<text key>": [old, ...] }).
 // Texts still on old wording get the current wording; texts admins edited stay.
 const PREVIOUS_TEXTS = {
-  TOAST_MESSAGES: { photoUpdated: ['Photo updated.'] },
+  TOAST_MESSAGES: { photoUpdated: ['Photo updated.'], newLoginCode: ['New login code for {phone}.'] },
   UI_LABELS: {
     'messages.hint': [
       'Every word in the app comes from here. Change a text and press Save; it updates for everyone right away. Keep words in {curly brackets}: the app fills them in.',
@@ -406,7 +409,8 @@ const SETTINGS = [
   ['OTP_LENGTH', 6, 'public', 'login', 'Login code length', 'How many digits the login code has. Must match the OTP length in Supabase Auth settings.'],
   ['OTP_SMS_TEMPLATE', 'Your Khata login code is {otp}', 'admin', 'login', 'OTP SMS text', 'Text of the login SMS. {otp} is replaced with the code.'],
   ['SMS_PROVIDER', { provider: 'inbox' }, 'admin', 'login', 'SMS provider', 'How login codes reach customers. "inbox" = codes appear in Admin → Login codes and you send them on WhatsApp. "http" = a real SMS provider sends them automatically (set up once you have one).'],
-  ['LOGIN_CODE_MINUTES', 5, 'admin', 'login', 'Login code time', 'How many minutes a code stays in Login codes. Keep it the same as the OTP expiry in Supabase Auth (5 minutes).'],
+  ['LOGIN_CODE_MINUTES', 10, 'admin', 'login', 'Login code time', 'How many minutes a code stays in Login codes. Keep it the same as the OTP expiry in Supabase Auth (10 minutes).'],
+  ['LOGIN_CODE_POLL_SECONDS', 10, 'admin', 'login', 'Login code check', 'How often (seconds) the app checks for new login codes and alerts admins on any screen.'],
   ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'login', 'Admin role', 'Role given to the numbers in Admin phones.'],
   ['DEFAULT_ROLE_NAME', 'shop_owner', 'admin', 'login', 'Customer role', 'Role given to everyone else when they first log in.'],
 
@@ -423,6 +427,8 @@ const SETTINGS = [
   ['AVATARS_BUCKET', 'avatars', 'authenticated', 'advanced', 'Profile photo storage', 'Storage bucket for profile photos.'],
   ['BILL_IMAGE', { max_px: 1600, quality: 0.8 }, 'authenticated', 'advanced', 'Bill photo size', 'Bill photos are shrunk to max_px pixels and quality (0-1) before upload.'],
   ['AVATAR_IMAGE', { max_px: 512, quality: 0.85, max_mb: 5, types: ['image/jpeg', 'image/png', 'image/webp'] }, 'authenticated', 'advanced', 'Profile photo rules', 'Allowed photo types and the largest file (max_mb). Photos are then shrunk to max_px pixels at this quality (0-1) before upload.'],
+  ['UPDATE_CHECK_SECONDS', 60, 'public', 'advanced', 'Update check', 'How often (seconds) an open app checks for a newly deployed version and offers to update.'],
+  ['CONTEXT_REFRESH_SECONDS', 60, 'authenticated', 'advanced', 'Permission refresh', 'When the app is opened again after this many seconds, the role and permissions are reloaded.'],
   ['SETTING_CHOICES', { DEFAULT_THEME: ['light', 'dark', 'system'] }, 'admin', 'advanced', 'Setting choices', 'Settings that are picked from a fixed list instead of typed.'],
   ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'advanced', 'QR scanner', 'Camera frames per second and scan box size for the bill QR scanner.'],
   ['MESSAGE_SETTINGS', ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'], 'admin', 'advanced', 'Text groups', 'Which text groups appear in Texts & messages.'],
