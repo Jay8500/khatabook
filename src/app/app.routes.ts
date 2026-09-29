@@ -15,6 +15,7 @@ export const NAV: NavItem[] = [
   { path: '/orders', label: 'nav.myOrders', icon: 'orders', permission: 'can_order', hideWith: 'can_manage_own_shop' },
   { path: '/join', label: 'nav.shops', icon: 'store', permission: 'can_order', hideWith: 'can_manage_own_shop' },
   { path: '/reminders', label: 'nav.reminders', icon: 'bell', permission: 'can_manage_own_shop' },
+  { path: '/customers', label: 'nav.customers', icon: 'users', permission: 'can_manage_own_shop' },
   { path: '/my-store', label: 'nav.myStore', icon: 'store', permission: 'can_manage_own_shop' },
   { path: '/vendors', label: 'nav.vendors', icon: 'truck', permission: 'can_manage_own_shop' },
   { path: '/support', label: 'nav.support', icon: 'help', permission: null },
@@ -65,6 +66,18 @@ export const routes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'can_manage_own_shop' },
         loadComponent: () => import('./features/orders/shop-orders').then((m) => m.ShopOrders),
+      },
+      {
+        path: 'customers',
+        canActivate: [permissionGuard],
+        data: { permission: 'can_manage_own_shop' },
+        loadComponent: () => import('./features/customers/customers').then((m) => m.Customers),
+      },
+      {
+        path: 'customers/:id',
+        canActivate: [permissionGuard],
+        data: { permission: 'can_manage_own_shop' },
+        loadComponent: () => import('./features/customers/customers').then((m) => m.Customers),
       },
       {
         path: 'my-store',

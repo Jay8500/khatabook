@@ -162,6 +162,9 @@ export class CartPage {
     if (this.store.store()?.shop.slug !== this.slug()) await this.store.load(this.slug());
     const first = this.options()[0];
     if (first) this.fulfilment.set(first);
+    // Signed in here (e.g. right after login): link them to the shop so the owner sees them.
+    const shopId = this.store.store()?.shop.id;
+    if (shopId && this.auth.isLoggedIn() && !this.auth.needsOnboarding()) this.store.join(shopId).catch(() => undefined);
 
     // Back from login / name step: restore the choices and send the order straight away.
     const draft = this.readDraft();
