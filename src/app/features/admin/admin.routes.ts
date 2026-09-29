@@ -3,6 +3,7 @@ import { permissionGuard } from '../../core/guards';
 
 /** Admin sub-pages; each is visible and reachable only with its permission. */
 export const ADMIN_SECTIONS = [
+  { path: 'login-codes', label: 'admin.loginCodes', permission: 'can_view_login_codes' },
   { path: 'settings', label: 'admin.settings', permission: 'can_manage_settings' },
   { path: 'admin-phones', label: 'admin.adminPhones', permission: 'can_manage_settings' },
   { path: 'messages', label: 'admin.messages', permission: 'can_manage_settings' },
@@ -27,6 +28,12 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: crudPage,
       })),
       {
+        path: 'login-codes',
+        canActivate: [permissionGuard],
+        data: { permission: 'can_view_login_codes' },
+        loadComponent: () => import('./login-codes').then((m) => m.LoginCodes),
+      },
+      {
         path: 'settings',
         canActivate: [permissionGuard],
         data: { permission: 'can_manage_settings' },
@@ -44,7 +51,7 @@ export const ADMIN_ROUTES: Routes = [
         data: { permission: 'can_manage_settings' },
         loadComponent: () => import('./messages-editor').then((m) => m.MessagesEditor),
       },
-      { path: '', pathMatch: 'full', redirectTo: 'settings' },
+      { path: '', pathMatch: 'full', redirectTo: 'login-codes' },
     ],
   },
 ];

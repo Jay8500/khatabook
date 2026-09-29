@@ -68,8 +68,10 @@ Function secrets (`ENCRYPTION_KEY`, `CRON_SECRET`, `SEND_SMS_HOOK_SECRET`) live 
 `supabase/.env` and are set with `npx supabase secrets set --env-file supabase/.env`.
 Vault holds `project_url` and `cron_secret` for the cron job.
 
-**Login OTPs**: `SMS_PROVIDER = {"provider":"log"}` writes each OTP to the `send-sms` function
-logs (Supabase dashboard → Edge Functions → send-sms → Logs). For real SMS set
+**Login OTPs**: `SMS_PROVIDER = {"provider":"inbox"}` (default) stores each OTP in `login_codes`;
+admins see it in Admin → Login codes and send it on WhatsApp. Codes are deleted on expiry
+(`LOGIN_CODE_MINUTES`) or when that phone signs in. `"log"` only writes to the send-sms function
+logs. For real SMS set
 `{"provider":"http", "url":..., "headers":..., "body":...}` using `{{phone}}`, `{{otp}}`,
 `{{message}}` and `{{env:API_KEY_NAME}}` (a function secret).
 

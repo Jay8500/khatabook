@@ -237,6 +237,16 @@ const labels = {
   'messages.group.messages': 'Texts & messages screen',
   'messages.group.other': 'Other',
 
+  'admin.loginCodes': 'Login codes',
+  'loginCodes.title': 'Login codes',
+  'loginCodes.hint': 'When someone taps Send OTP, their code shows here. Tap "Send on WhatsApp" to send it to them. Codes disappear after they log in or when they expire.',
+  'loginCodes.empty': 'No one is waiting for a code right now.',
+  'loginCodes.whatsapp': 'Send on WhatsApp',
+  'loginCodes.copy': 'Copy code',
+  'loginCodes.expiresIn': 'Expires in {minutes} min',
+  'loginCodes.expiringSoon': 'Expires in less than a minute',
+  'login.otpHint': 'Your code will arrive on SMS or WhatsApp in a minute.',
+  'messages.group.loginCodes': 'Login codes screen',
   'messages.editTitle': 'Change text',
   'template.insert': 'Tap to add a detail:',
   'template.preview': 'Preview',
@@ -275,6 +285,8 @@ const toasts = {
   photoFailed: 'Could not upload the photo.',
   remindersChecked: '{count} new reminder(s) created.',
   invalidPhone: 'Enter a valid {digits}-digit mobile number.',
+  codeCopied: 'Code copied.',
+  newLoginCode: 'New login code for {phone}.',
   invalidOtpLength: 'Enter the {digits}-digit code.',
   otpSendFailed: 'Could not send the code. Please try again.',
   'auth.otp_expired': 'Wrong or expired code. Check it and try again.',
@@ -301,6 +313,7 @@ const theme = {
 // Earlier default values. If a setting still holds one of these (no admin edit), it is
 // switched to the current default.
 const PREVIOUS_DEFAULTS = {
+  SMS_PROVIDER: [{ provider: 'log' }],
   THEME_COLORS: [
     {
       light: {
@@ -343,6 +356,8 @@ const textVariables = {
   'UI_LABELS.profile.whatsappText': [v('username', 'Username', 'jay'), v('shop', 'Shop name', 'Lakshmi Kirana')],
   'UI_LABELS.settings.items': [v('count', 'Number', '12')],
   'TOAST_MESSAGES.remindersChecked': [v('count', 'Number of reminders', '2')],
+  'UI_LABELS.loginCodes.expiresIn': [v('minutes', 'Minutes left', '4')],
+  'TOAST_MESSAGES.newLoginCode': [v('phone', 'Mobile number', '+91 98765 43210')],
   'TOAST_MESSAGES.invalidPhone': [v('digits', 'Number of digits', '10')],
   'TOAST_MESSAGES.invalidOtpLength': [v('digits', 'Number of digits', '6')],
   OTP_SMS_TEMPLATE: [v('otp', 'Login code', '482913')],
@@ -381,7 +396,8 @@ const SETTINGS = [
   ['PHONE_DIGITS', 10, 'public', 'login', 'Mobile number length', 'How many digits a mobile number has (without the country code). The login screen checks this.'],
   ['OTP_LENGTH', 6, 'public', 'login', 'Login code length', 'How many digits the login code has. Must match the OTP length in Supabase Auth settings.'],
   ['OTP_SMS_TEMPLATE', 'Your Khata login code is {otp}', 'admin', 'login', 'OTP SMS text', 'Text of the login SMS. {otp} is replaced with the code.'],
-  ['SMS_PROVIDER', { provider: 'log' }, 'admin', 'login', 'SMS provider', 'How login codes are delivered. "log" = not sent, only visible in the Supabase send-sms logs (testing). Connect a real SMS provider before launch.'],
+  ['SMS_PROVIDER', { provider: 'inbox' }, 'admin', 'login', 'SMS provider', 'How login codes reach customers. "inbox" = codes appear in Admin → Login codes and you send them on WhatsApp. "http" = a real SMS provider sends them automatically (set up once you have one).'],
+  ['LOGIN_CODE_MINUTES', 5, 'admin', 'login', 'Login code time', 'How many minutes a code stays in Login codes. Keep it the same as the OTP expiry in Supabase Auth (5 minutes).'],
   ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'login', 'Admin role', 'Role given to the numbers in Admin phones.'],
   ['DEFAULT_ROLE_NAME', 'shop_owner', 'admin', 'login', 'Customer role', 'Role given to everyone else when they first log in.'],
 
@@ -421,6 +437,7 @@ const all = {
   can_manage_users: true,
   can_manage_support: true,
   can_manage_own_shop: true,
+  can_view_login_codes: true,
 };
 
 const ROLES = [

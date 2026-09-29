@@ -37,7 +37,10 @@ import { ToastService } from '../../core/services/toast.service';
           </form>
         } @else {
           <form class="mt-6 grid gap-4" (submit)="$event.preventDefault(); verify()">
-            <p class="text-sm">{{ config.label('login.otpSentTo', { phone: fullPhone() }) }}</p>
+            <div>
+              <p class="text-sm">{{ config.label('login.otpSentTo', { phone: fullPhone() }) }}</p>
+              <p class="mt-1 text-xs text-muted">{{ config.label('login.otpHint') }}</p>
+            </div>
             <label class="grid gap-1.5 text-sm">
               <span class="font-medium">{{ config.label('login.otp') }}</span>
               <input
