@@ -78,6 +78,19 @@ logs. For real SMS set
 Test phone numbers (`[auth.sms.test_otp]`) cannot be removed with `config push`; clear
 `sms_test_otp` via the dashboard or Management API.
 
+## Store and orders (Phase 3A)
+
+- Every shop has a public store at `/s/<slug>` and a join code (`/join` finds a shop by code or
+  phone). Browsing uses the public `store_get` / `store_find` RPCs (plain `rpc`, no login).
+- People who sign up from a shop link get `CUSTOMER_ROLE_NAME` (via `signup_as` user metadata).
+- Cart lives in browser storage per shop; `order_place` re-checks items, prices and stock.
+- Status flow: requested → accepted → packed → ready → completed (or rejected / cancelled).
+  Accept reserves stock (`stocks.reserved_qty`), completion deducts it, cancel releases it.
+- Payment: shop picks full / advance / COD on accept; customers pay by UPI link/QR and report
+  it; the shop confirms. Every step can carry a remark (`order_events`).
+- Owner screens: Orders (`/shop-orders`, badge for new requests) and My store (`/my-store`).
+  Customer screens: My orders (`/orders`), order detail (`/orders/:id`, shared by both sides).
+
 ## Version
 
 The version shown on the profile page comes from `package.json` (`major.minor.patch`) plus

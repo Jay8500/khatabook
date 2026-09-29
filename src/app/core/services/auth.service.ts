@@ -69,8 +69,11 @@ export class AuthService {
     this.theme.setMode(context?.profile.preferences?.['theme']);
   }
 
-  async sendOtp(phone: string): Promise<void> {
-    const { error } = await this.supabase.requireClient().auth.signInWithOtp({ phone });
+  /** signupAs: 'customer' when the person came from a shop link (applies to new accounts only). */
+  async sendOtp(phone: string, signupAs?: string): Promise<void> {
+    const { error } = await this.supabase
+      .requireClient()
+      .auth.signInWithOtp({ phone, options: signupAs ? { data: { signup_as: signupAs } } : undefined });
     if (error) throw error;
   }
 

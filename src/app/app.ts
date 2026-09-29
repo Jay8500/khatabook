@@ -7,6 +7,7 @@ import { AuthService } from './core/services/auth.service';
 import { ConfigService } from './core/services/config.service';
 import { NetworkService } from './core/services/network.service';
 import { LoginCodeWatchService } from './core/services/login-code-watch.service';
+import { OrderWatchService } from './core/services/order-watch.service';
 import { ThemeService } from './core/services/theme.service';
 import { UpdateService } from './core/services/update.service';
 import { Avatar } from './shared/avatar/avatar';
@@ -27,9 +28,13 @@ export class App {
   private readonly router = inject(Router);
   protected readonly updates = inject(UpdateService);
   private readonly codeWatch = inject(LoginCodeWatchService);
+  private readonly orderWatch = inject(OrderWatchService);
 
   /** Red count on nav items, e.g. pending login codes on Admin. */
-  protected readonly badges = computed<Record<string, number>>(() => ({ '/admin': this.codeWatch.pending() }));
+  protected readonly badges = computed<Record<string, number>>(() => ({
+    '/admin': this.codeWatch.pending(),
+    '/shop-orders': this.orderWatch.requested(),
+  }));
   protected readonly moreBadge = computed(() =>
     this.moreItems().reduce((sum, item) => sum + (this.badges()[item.path] ?? 0), 0),
   );
@@ -46,7 +51,10 @@ export class App {
   protected readonly nav = computed(() =>
     !this.auth.isLoggedIn() || this.auth.needsOnboarding()
       ? []
-      : NAV.filter((item) => !item.permission || this.auth.can(item.permission)),
+      : NAV.filter(
+          (item) =>
+            (!item.permission || this.auth.can(item.permission)) && !(item.hideWith && this.auth.can(item.hideWith)),
+        ),
   );
 
   // Phone bottom bar: first items in the bar, the rest in the "More" sheet.

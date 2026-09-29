@@ -1,6 +1,9 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { ConfigService } from '../../core/services/config.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SupabaseService } from '../../core/services/supabase.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ImageRules, checkImage, compressImage } from '../image';
 import { Row } from '../../core/types/models';
 import { FieldDef, OptionMap } from '../entity';
 
@@ -51,6 +54,24 @@ type Draft = Record<string, string | boolean>;
                 @case ('textarea') {
                   <textarea rows="3" [class]="inputClass" [value]="draft()[field.key]" (input)="set(field.key, $any($event.target).value)"></textarea>
                 }
+                @case ('image') {
+                  <div class="flex items-center gap-3">
+                    <label class="relative grid size-20 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-background">
+                      @if (draft()[field.key]) {
+                        <img [src]="draft()[field.key]" alt="" class="size-full object-cover" />
+                      } @else {
+                        <span class="text-2xl text-muted">+</span>
+                      }
+                      @if (uploading() === field.key) {
+                        <span class="absolute inset-0 grid place-items-center bg-black/45"><span class="size-6 animate-spin rounded-full border-2 border-white/30 border-t-white"></span></span>
+                      }
+                      <input type="file" class="hidden" [accept]="acceptFor(field)" (change)="upload(field, $event)" />
+                    </label>
+                    @if (draft()[field.key]) {
+                      <button type="button" class="text-sm font-medium text-error" (click)="set(field.key, '')">{{ config.label('common.delete') }}</button>
+                    }
+                  </div>
+                }
                 @case ('json') {
                   <textarea
                     rows="6"
@@ -91,6 +112,8 @@ type Draft = Record<string, string | boolean>;
 export class EntityForm {
   protected readonly config = inject(ConfigService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+  private readonly supabase = inject(SupabaseService);
 
   readonly fields = input.required<FieldDef[]>();
   readonly labelPrefix = input.required<string>();
@@ -114,16 +137,55 @@ export class EntityForm {
 
   constructor() {
     effect(() => {
-      const row = this.value() ?? {};
+      const current = this.value();
+      const row = current ?? {};
       const draft: Draft = {};
       for (const field of this.formFields()) {
-        const v = row[field.key];
+        const v = current ? row[field.key] : field.default;
         if (field.type === 'boolean') draft[field.key] = v === true;
         else if (field.type === 'json') draft[field.key] = v === undefined ? '' : JSON.stringify(v, null, 2);
         else draft[field.key] = v === null || v === undefined ? '' : String(v);
       }
       this.draft.set(draft);
     });
+  }
+
+  protected readonly uploading = signal('');
+
+  protected acceptFor(field: FieldDef): string {
+    const rules = field.image ? this.config.get<ImageRules>(field.image.rulesSetting) : undefined;
+    return (rules?.types ?? ['image/*']).join(',');
+  }
+
+  /** Shrinks and uploads to <bucket>/<shop id>/<random>.jpg, then stores the public URL. */
+  protected async upload(field: FieldDef, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const shopId = this.auth.shop()?.id;
+    if (!file || !field.image || !shopId) return;
+    const rules = this.config.get<ImageRules>(field.image.rulesSetting) ?? {};
+    const problem = checkImage(file, rules);
+    if (problem) {
+      this.toast.show(problem, 'warning', { types: (rules.types ?? []).map((t) => t.split('/')[1]?.toUpperCase()).join(', '), mb: rules.max_mb });
+      return;
+    }
+    const bucket = this.config.get<string>(field.image.bucketSetting);
+    if (!bucket) return;
+    this.uploading.set(field.key);
+    try {
+      const blob = await compressImage(file, rules);
+      const path = `${shopId}/${crypto.randomUUID()}.jpg`;
+      const storage = this.supabase.requireClient().storage.from(bucket);
+      const { error } = await storage.upload(path, blob, { contentType: 'image/jpeg' });
+      if (error) throw error;
+      this.set(field.key, storage.getPublicUrl(path).data.publicUrl);
+    } catch (err) {
+      console.error(err);
+      this.toast.show('photoFailed', 'error');
+    } finally {
+      this.uploading.set('');
+    }
   }
 
   protected set(key: string, value: string | boolean): void {

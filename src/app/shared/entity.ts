@@ -3,7 +3,16 @@ import { AuthService } from '../core/services/auth.service';
 import { ConfigService } from '../core/services/config.service';
 import { CrudService } from '../core/services/crud.service';
 
-export type FieldType = 'text' | 'number' | 'textarea' | 'json' | 'boolean' | 'select' | 'date' | 'money';
+export type FieldType =
+  | 'text'
+  | 'number'
+  | 'textarea'
+  | 'json'
+  | 'boolean'
+  | 'select'
+  | 'date'
+  | 'money'
+  | 'image';
 
 export interface Option {
   value: string;
@@ -26,6 +35,10 @@ export interface FieldDef {
   grid?: boolean;
   form?: boolean;
   options?: (ctx: OptionContext) => Promise<Option[]> | Option[];
+  /** Value for new rows (e.g. a checkbox that starts ticked). */
+  default?: unknown;
+  /** type 'image': app_settings keys of the storage bucket and the image rules. */
+  image?: { bucketSetting: string; rulesSetting: string };
 }
 
 export interface EntityConfig {
@@ -72,6 +85,8 @@ export function displayValue(
       return config.date(value);
     case 'json':
       return JSON.stringify(value);
+    case 'image':
+      return '📷';
     default:
       return String(value);
   }

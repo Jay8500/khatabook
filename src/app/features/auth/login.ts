@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -76,6 +76,10 @@ export class Login {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly params = inject(ActivatedRoute).snapshot.queryParamMap;
+  /** Where to go after login (e.g. back to a cart) and how new accounts sign up. */
+  private readonly returnUrl = this.params.get('returnUrl');
+  private readonly signupAs = this.params.get('as') ?? undefined;
 
   protected readonly countryCode = this.config.get<string>('DEFAULT_COUNTRY_CODE') ?? '';
   protected readonly step = signal<'phone' | 'otp'>('phone');
@@ -111,7 +115,7 @@ export class Login {
     }
     this.busy.set(true);
     try {
-      await this.auth.sendOtp(this.fullPhone());
+      await this.auth.sendOtp(this.fullPhone(), this.signupAs);
       this.step.set('otp');
       this.toast.show('otpSent', 'success');
     } catch (err) {
@@ -130,7 +134,11 @@ export class Login {
     try {
       await this.auth.verifyOtp(this.fullPhone(), this.otp());
       this.toast.show('loginSuccess', 'success');
-      await this.router.navigateByUrl(this.auth.needsOnboarding() ? '/onboarding' : '/');
+      if (this.auth.needsOnboarding()) {
+        await this.router.navigate(['/onboarding'], { queryParams: { returnUrl: this.returnUrl } });
+      } else {
+        await this.router.navigateByUrl(this.returnUrl ?? '/');
+      }
     } catch (err) {
       this.otp.set('');
       this.authError(err, 'loginFailed');

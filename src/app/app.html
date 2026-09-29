@@ -1,4 +1,5 @@
-<div class="flex min-h-dvh flex-col">
+<!-- has-bottom-bar lets fixed elements (toasts, cart bar) sit above the phone tab bar -->
+<div class="flex min-h-dvh flex-col" [class.has-bottom-bar]="hasBottomBar()">
   @if (updates.ready()) {
     <button type="button" class="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-on-primary" (click)="updates.apply()">
       {{ config.label('update.available') }}
@@ -152,5 +153,5 @@
     }
   }
 
-  <app-toast-host [class.has-bottom-bar]="hasBottomBar()" />
+  <app-toast-host />
 </div>

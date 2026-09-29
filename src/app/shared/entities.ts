@@ -24,10 +24,16 @@ export const ENTITIES: Record<string, EntityConfig> = {
     scope: 'shop',
     order: 'product_name',
     fields: [
+      { key: 'image_url', type: 'image', grid: false, image: { bucketSetting: 'PRODUCTS_BUCKET', rulesSetting: 'PRODUCT_IMAGE' } },
       { key: 'product_name', required: true },
       { key: 'qty', type: 'number', required: true },
       { key: 'unit' },
-      { key: 'low_stock_threshold', type: 'number' },
+      { key: 'price', type: 'money' },
+      { key: 'category' },
+      { key: 'show_in_store', type: 'boolean', default: true },
+      { key: 'reserved_qty', type: 'number', form: false },
+      { key: 'low_stock_threshold', type: 'number', grid: false },
+      { key: 'description', type: 'textarea', grid: false },
     ],
   },
   vendors: {

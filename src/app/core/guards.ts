@@ -26,3 +26,9 @@ export const permissionGuard: CanActivateFn = (route) => {
   inject(ToastService).show('permissionDenied', 'error');
   return inject(Router).createUrlTree(['/']);
 };
+
+/** Customers (no shop of their own) land on their orders instead of the shop dashboard. */
+export const homeGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.can('can_manage_own_shop') || inject(Router).createUrlTree([auth.can('can_order') ? '/orders' : '/support']);
+};

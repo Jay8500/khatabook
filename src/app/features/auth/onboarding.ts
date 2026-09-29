@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -11,10 +11,10 @@ import { ToastService } from '../../core/services/toast.service';
       <form class="grid gap-4 rounded-3xl border border-border bg-surface p-6 shadow-sm" (submit)="$event.preventDefault(); submit()">
         <div>
           <h1 class="text-2xl font-bold">{{ config.label('onboarding.title') }}</h1>
-          <p class="mt-1 text-sm text-muted">{{ config.label('onboarding.subtitle') }}</p>
+          <p class="mt-1 text-sm text-muted">{{ config.label(isOwner ? 'onboarding.subtitle' : 'onboarding.customerSubtitle') }}</p>
         </div>
         <label class="grid gap-1.5 text-sm">
-          <span class="font-medium">{{ config.label('onboarding.username') }}</span>
+          <span class="font-medium">{{ config.label(isOwner ? 'onboarding.username' : 'onboarding.yourName') }}</span>
           <input
             class="rounded-xl border border-border bg-background px-3 py-3 outline-none focus:border-primary"
             autocomplete="username"
@@ -23,7 +23,7 @@ import { ToastService } from '../../core/services/toast.service';
             required
           />
         </label>
-        @if (!auth.shop()) {
+        @if (isOwner && !auth.shop()) {
           <label class="grid gap-1.5 text-sm">
             <span class="font-medium">{{ config.label('onboarding.shopName') }}</span>
             <input
@@ -45,6 +45,9 @@ export class Onboarding {
   protected readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly returnUrl = inject(ActivatedRoute).snapshot.queryParamMap.get('returnUrl');
+  /** Customers only choose a name; shop owners also name their shop. */
+  protected readonly isOwner = this.auth.can('can_manage_own_shop');
 
   protected readonly username = signal('');
   protected readonly shopName = signal('');
@@ -55,7 +58,7 @@ export class Onboarding {
     try {
       await this.auth.completeOnboarding(this.username().trim(), this.shopName().trim());
       this.toast.show('onboardingDone', 'success');
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl(this.returnUrl ?? '/');
     } catch (err) {
       this.toast.error(err);
     } finally {
