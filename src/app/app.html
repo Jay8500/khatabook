@@ -49,15 +49,17 @@
       </div>
     </div>
 
+    <!-- Desktop: tabs under the header -->
     @if (nav().length > 1) {
-      <nav class="no-scrollbar mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4 pb-2">
+      <nav class="no-scrollbar mx-auto hidden max-w-5xl gap-1 overflow-x-auto px-4 pb-2 md:flex">
         @for (item of nav(); track item.path) {
           <a
             [routerLink]="item.path"
             routerLinkActive="!bg-primary !text-on-primary"
             [routerLinkActiveOptions]="{ exact: item.path === '/' }"
-            class="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium text-muted hover:text-text"
+            class="flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-muted hover:text-text"
           >
+            <app-icon [name]="item.icon" class="!size-4" />
             {{ config.label(item.label) }}
           </a>
         }
@@ -65,16 +67,68 @@
     }
   </header>
 
-  <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+  <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6" [class.max-md:pb-28]="hasBottomBar()">
     <router-outlet />
   </main>
 
   <!-- The profile page shows its own credit with the version. -->
   @if (!onProfile()) {
-    <footer class="pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2">
+    <footer class="pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2" [class.max-md:pb-28]="hasBottomBar()">
       <app-brand-credit />
     </footer>
   }
-</div>
 
-<app-toast-host />
+  <!-- Phone: bottom tab bar -->
+  @if (hasBottomBar()) {
+    <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <div class="mx-auto flex max-w-md">
+        @for (item of barItems(); track item.path) {
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="!text-primary [&>span:first-child]:!bg-primary/15"
+            [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+            class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted"
+            (click)="moreOpen.set(false)"
+          >
+            <span class="grid h-7 w-12 place-items-center rounded-full transition"><app-icon [name]="item.icon" /></span>
+            {{ config.label(item.label) }}
+          </a>
+        }
+        @if (moreItems().length) {
+          <button
+            type="button"
+            class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+            [class]="moreOpen() || moreActive() ? 'text-primary' : 'text-muted'"
+            (click)="moreOpen.set(!moreOpen())"
+          >
+            <span class="grid h-7 w-12 place-items-center rounded-full transition" [class.bg-primary/15]="moreOpen() || moreActive()"><app-icon name="more" /></span>
+            {{ config.label('nav.more') }}
+          </button>
+        }
+      </div>
+    </nav>
+
+    @if (moreOpen()) {
+      <div class="fixed inset-0 z-20 bg-black/30 md:hidden" (click)="moreOpen.set(false)">
+        <div
+          class="absolute inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] grid gap-1 rounded-2xl border border-border bg-surface p-2 shadow-xl"
+          (click)="$event.stopPropagation()"
+        >
+          @for (item of moreItems(); track item.path) {
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="!bg-primary/15 !text-primary"
+              class="flex items-center gap-3 rounded-xl px-4 py-3 font-medium hover:bg-background"
+              (click)="moreOpen.set(false)"
+            >
+              <app-icon [name]="item.icon" />
+              {{ config.label(item.label) }}
+            </a>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <app-toast-host [class.has-bottom-bar]="hasBottomBar()" />
+</div>

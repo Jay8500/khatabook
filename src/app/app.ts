@@ -1,19 +1,20 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { NAV } from './app.routes';
+import { BOTTOM_BAR_SIZE, NAV } from './app.routes';
 import { AuthService } from './core/services/auth.service';
 import { ConfigService } from './core/services/config.service';
 import { NetworkService } from './core/services/network.service';
 import { ThemeService } from './core/services/theme.service';
 import { Avatar } from './shared/avatar/avatar';
 import { BrandCredit } from './shared/brand-credit/brand-credit';
+import { Icon } from './shared/icon/icon';
 import { ToastHost } from './shared/toast-host/toast-host';
 
 @Component({
   selector: 'app-root',
-  imports: [Avatar, BrandCredit, RouterLink, RouterLinkActive, RouterOutlet, ToastHost],
+  imports: [Avatar, BrandCredit, Icon, RouterLink, RouterLinkActive, RouterOutlet, ToastHost],
   templateUrl: './app.html',
 })
 export class App {
@@ -37,6 +38,18 @@ export class App {
       ? []
       : NAV.filter((item) => !item.permission || this.auth.can(item.permission)),
   );
+
+  // Phone bottom bar: first items in the bar, the rest in the "More" sheet.
+  protected readonly hasBottomBar = computed(() => this.nav().length > 1);
+  protected readonly barItems = computed(() => {
+    const items = this.nav();
+    return items.length <= BOTTOM_BAR_SIZE + 1 ? items : items.slice(0, BOTTOM_BAR_SIZE);
+  });
+  protected readonly moreItems = computed(() => this.nav().slice(this.barItems().length));
+  protected readonly moreActive = computed(() =>
+    this.moreItems().some((item) => item.path !== '/' && this.url().startsWith(item.path)),
+  );
+  protected readonly moreOpen = signal(false);
 
   protected toggleTheme(): void {
     const mode = this.theme.toggle();

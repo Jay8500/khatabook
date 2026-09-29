@@ -4,6 +4,7 @@ import { CrudService } from '../../core/services/crud.service';
 import { PwaService } from '../../core/services/pwa.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { ToastService } from '../../core/services/toast.service';
+import { TemplateEditor, TextVariable } from '../../shared/template-editor/template-editor';
 
 interface SettingRow {
   key: string;
@@ -55,6 +56,7 @@ function humanize(key: string): string {
 
 @Component({
   selector: 'app-settings-page',
+  imports: [TemplateEditor],
   template: `
     <h1 class="text-xl font-bold sm:text-2xl">{{ config.label('settings.title') }}</h1>
     <p class="mt-1 max-w-prose text-sm text-muted">{{ config.label('settings.hint') }}</p>
@@ -137,6 +139,9 @@ function humanize(key: string): string {
           <p class="mt-1 text-sm text-muted">{{ row.description }}</p>
 
           <div class="mt-5">
+            @if (settingVariables().length) {
+              <app-template-editor [value]="$any(draft())" (valueChange)="draft.set($event)" [variables]="settingVariables()" />
+            } @else {
             @switch (draftKind()) {
               @case ('boolean') {
                 <button
@@ -206,6 +211,7 @@ function humanize(key: string): string {
                 <input [class]="inputClass" [value]="draft()" (input)="draft.set($any($event.target).value)" />
               }
             }
+            }
           </div>
 
           <label class="mt-5 grid gap-1.5 text-sm">
@@ -251,6 +257,13 @@ export class SettingsPage {
   protected readonly visibility = signal('');
   protected readonly newItem = signal('');
   protected readonly saving = signal(false);
+
+  /** Text settings with placeholders (e.g. OTP_SMS_TEMPLATE) get the chip editor. */
+  protected readonly settingVariables = computed(() => {
+    const row = this.editing();
+    if (!row || typeof row.value !== 'string') return [];
+    return this.config.get<Record<string, TextVariable[]>>('TEXT_VARIABLES')?.[row.key] ?? [];
+  });
 
   protected readonly draftKind = computed(() => {
     const row = this.editing();

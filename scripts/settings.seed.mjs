@@ -178,7 +178,7 @@ const labels = {
 
   // Page explanations (shown under each title)
   'settings.hint': 'These control how the app works for everyone. Tap a setting to change it; changes apply right away.',
-  'messages.hint': 'Every word in the app comes from here. Change a text and press Save; it updates for everyone right away. Keep words in {curly brackets}: the app fills them in.',
+  'messages.hint': 'Every word in the app comes from here. Tap a text to change it; use the chips to add details like the product name. Changes apply for everyone right away.',
   'roles.hint': 'A role is a set of permissions. Numbers in Admin phones get the admin role, everyone else the customer role. Permissions decide which tabs a person sees.',
   'pricing.hint': 'Plans a shop can be on. New shops start on the plan named in Settings → Plan for new shops.',
   'shops.hint': 'Every customer shop. Change a shop\'s plan or extend its "valid till" date here.',
@@ -237,6 +237,11 @@ const labels = {
   'messages.group.messages': 'Texts & messages screen',
   'messages.group.other': 'Other',
 
+  'messages.editTitle': 'Change text',
+  'template.insert': 'Tap to add a detail:',
+  'template.preview': 'Preview',
+  'nav.more': 'More',
+
   'messages.title': 'Texts & messages',
   'messages.UI_LABELS': 'Screen labels',
   'messages.TOAST_MESSAGES': 'Pop-up messages',
@@ -272,17 +277,66 @@ const toasts = {
   noNewReminders: 'No new reminders. Stock looks fine.',
 };
 
+// Spread Apps teal (brand dots: #0E9E86, #3BC9B0, #8FE3D6).
 const theme = {
   light: {
-    primary: '#FFC107', onPrimary: '#1F1300', background: '#FFF8E1', surface: '#FFFFFF',
-    border: '#F3E3B5', text: '#3E2723', muted: '#8D6E63',
-    success: '#2E7D32', error: '#C62828', warning: '#EF6C00', info: '#1565C0',
+    primary: '#0E9E86', onPrimary: '#FFFFFF', background: '#F3FAF8', surface: '#FFFFFF',
+    border: '#D3EAE4', text: '#0F2A26', muted: '#5C7A74',
+    success: '#16A34A', error: '#DC2626', warning: '#D97706', info: '#2563EB',
   },
   dark: {
-    primary: '#FFC107', onPrimary: '#1F1300', background: '#17130C', surface: '#241E14',
-    border: '#3A3021', text: '#FFF8E1', muted: '#BCAAA4',
-    success: '#66BB6A', error: '#EF5350', warning: '#FFA726', info: '#42A5F5',
+    primary: '#3BC9B0', onPrimary: '#04201B', background: '#0A1614', surface: '#11211E',
+    border: '#1F3833', text: '#E4F4F0', muted: '#8DB0A9',
+    success: '#4ADE80', error: '#F87171', warning: '#FBBF24', info: '#60A5FA',
   },
+};
+
+// Earlier default values. If a setting still holds one of these (no admin edit), it is
+// switched to the current default.
+const PREVIOUS_DEFAULTS = {
+  THEME_COLORS: [
+    {
+      light: {
+        primary: '#FFC107', onPrimary: '#1F1300', background: '#FFF8E1', surface: '#FFFFFF',
+        border: '#F3E3B5', text: '#3E2723', muted: '#8D6E63',
+        success: '#2E7D32', error: '#C62828', warning: '#EF6C00', info: '#1565C0',
+      },
+      dark: {
+        primary: '#FFC107', onPrimary: '#1F1300', background: '#17130C', surface: '#241E14',
+        border: '#3A3021', text: '#FFF8E1', muted: '#BCAAA4',
+        success: '#66BB6A', error: '#EF5350', warning: '#FFA726', info: '#42A5F5',
+      },
+    },
+  ],
+};
+
+// Earlier default wording of individual texts ("<SETTING>": { "<text key>": [old, ...] }).
+// Texts still on old wording get the current wording; texts admins edited stay.
+const PREVIOUS_TEXTS = {
+  UI_LABELS: {
+    'messages.hint': [
+      'Every word in the app comes from here. Change a text and press Save; it updates for everyone right away. Keep words in {curly brackets}: the app fills them in.',
+    ],
+  },
+};
+
+// Placeholders offered as chips when editing a text ("<SETTING>.<text key>", or a setting key).
+const v = (key, label, sample) => ({ key, label, sample });
+const textVariables = {
+  'REMINDER_MESSAGES.low_stock': [
+    v('product', 'Product name', 'Sona Masoori Rice'),
+    v('qty', 'Quantity left', '3'),
+    v('unit', 'Unit', 'bag'),
+    v('threshold', 'Low-stock limit', '5'),
+  ],
+  'UI_LABELS.home.greeting': [v('name', 'Username', 'Jay')],
+  'UI_LABELS.home.validTill': [v('date', 'Date', '13/10/2026')],
+  'UI_LABELS.login.otpSentTo': [v('phone', 'Mobile number', '+919182054065')],
+  'UI_LABELS.profile.version': [v('version', 'Version', '1.2.0')],
+  'UI_LABELS.profile.whatsappText': [v('username', 'Username', 'jay'), v('shop', 'Shop name', 'Lakshmi Kirana')],
+  'UI_LABELS.settings.items': [v('count', 'Number', '12')],
+  'TOAST_MESSAGES.remindersChecked': [v('count', 'Number of reminders', '2')],
+  OTP_SMS_TEMPLATE: [v('otp', 'Login code', '482913')],
 };
 
 const icons = [72, 96, 128, 144, 152, 192, 384, 512]
@@ -335,6 +389,7 @@ const SETTINGS = [
   ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'advanced', 'QR scanner', 'Camera frames per second and scan box size for the bill QR scanner.'],
   ['MESSAGE_SETTINGS', ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'], 'admin', 'advanced', 'Text groups', 'Which text groups appear in Texts & messages.'],
   ['SETTING_VISIBILITIES', ['public', 'authenticated', 'admin'], 'admin', 'advanced', 'Visibility choices', 'Who a setting can be sent to.'],
+  ['TEXT_VARIABLES', textVariables, 'admin', 'advanced', 'Text variables', 'Details that can be added into a text (shown as chips when editing it), with an example value for the preview.'],
   ['SETTING_CATEGORIES', ['general', 'business', 'login', 'appearance', 'advanced'], 'admin', 'advanced', 'Settings groups', 'Groups on this page, in order. The last one starts collapsed.'],
 
   // Edited on their own screens
@@ -418,6 +473,21 @@ const sql = [
   '-- Descriptions and groups belong to the app, so they are always refreshed.',
   ...SETTINGS.map(
     ([k, , , cat, , d]) => `update public.app_settings set category = ${q(cat)}, description = ${q(d)} where key = ${q(k)};`,
+  ),
+  '',
+  '-- Settings still on an earlier default move to the current default.',
+  ...SETTINGS.filter(([k]) => PREVIOUS_DEFAULTS[k]).flatMap(([k, v]) =>
+    PREVIOUS_DEFAULTS[k].map((old) => `update public.app_settings set value = ${j(v)} where key = ${q(k)} and value = ${j(old)};`),
+  ),
+  '',
+  '-- Texts still on earlier default wording move to the current wording.',
+  ...SETTINGS.filter(([k]) => PREVIOUS_TEXTS[k]).flatMap(([k, v]) =>
+    Object.entries(PREVIOUS_TEXTS[k]).flatMap(([textKey, olds]) =>
+      olds.map(
+        (old) =>
+          `update public.app_settings set value = jsonb_set(value, ${q('{' + textKey + '}')}, ${j(v[textKey])}) where key = ${q(k)} and value ->> ${q(textKey)} = ${q(old)};`,
+      ),
+    ),
   ),
   '',
   '-- Text maps: add keys that are new in code; texts admins already edited win.',

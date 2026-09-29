@@ -5,7 +5,7 @@ import { ToastService, ToastType } from '../../core/services/toast.service';
 @Component({
   selector: 'app-toast-host',
   template: `
-    <div class="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 flex flex-col items-center gap-2 px-4">
+    <div class="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-md:in-[.has-bottom-bar]:bottom-[calc(5.25rem+env(safe-area-inset-bottom))] flex flex-col items-center gap-2 px-4">
       @for (toast of toasts.toasts(); track toast.id) {
         <div
           role="status"
