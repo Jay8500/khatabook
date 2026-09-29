@@ -12,7 +12,7 @@ import { Row } from '../../core/types/models';
   template: `
     <section class="rounded-2xl bg-primary px-5 py-7 text-on-primary shadow-sm sm:px-8 sm:py-10">
       <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-        {{ config.label('home.greeting', { name: auth.profile()?.username }) }}
+        {{ config.label('home.greeting', { name: auth.displayName() }) }}
       </h1>
       @if (auth.shop(); as shop) {
         <p class="mt-1 text-lg font-medium opacity-90">{{ shop.name }}</p>

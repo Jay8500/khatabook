@@ -4,6 +4,8 @@ export interface UserProfile {
   id: string;
   phone: string | null;
   username: string | null;
+  /** Name shown to people; customers only have this (their username is generated). */
+  display_name: string | null;
   role_id: string | null;
   shop_id: string | null;
   avatar_url: string | null;

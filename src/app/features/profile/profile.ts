@@ -17,7 +17,7 @@ import { ImageRules } from '../../shared/image';
       <!-- Photo + name -->
       <section class="rounded-3xl border border-border bg-surface p-6 text-center">
         <label class="group relative mx-auto flex w-fit cursor-pointer">
-          <app-avatar [url]="profile()?.avatar_url" [name]="profile()?.username" [size]="104" />
+          <app-avatar [url]="profile()?.avatar_url" [name]="auth.displayName()" [size]="104" />
           @if (uploading()) {
             <!-- Loader inside the circle while the photo uploads -->
             <span class="absolute inset-0 grid place-items-center rounded-full bg-black/45">
@@ -33,21 +33,21 @@ import { ImageRules } from '../../shared/image';
           <span class="sr-only">{{ config.label('profile.changePhoto') }}</span>
         </label>
 
-        <h1 class="mt-4 text-xl font-bold">{{ profile()?.username }}</h1>
+        <h1 class="mt-4 text-xl font-bold">{{ auth.displayName() }}</h1>
         <p class="text-sm text-muted">{{ phone() }}</p>
       </section>
 
       <!-- Details -->
       <section class="rounded-3xl border border-border bg-surface p-5">
         <form class="grid gap-1.5 text-sm" (submit)="$event.preventDefault(); saveUsername()">
-          <span class="font-medium">{{ config.label('profile.username') }}</span>
+          <span class="font-medium">{{ config.label(auth.can('can_manage_own_shop') ? 'profile.username' : 'profile.name') }}</span>
           <div class="flex gap-2">
             <input
               class="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2.5 outline-none focus:border-primary"
               [value]="username()"
               (input)="username.set($any($event.target).value)"
             />
-            @if (username().trim() && username().trim() !== profile()?.username) {
+            @if (username().trim() && username().trim() !== auth.displayName()) {
               <button type="submit" class="rounded-xl bg-primary px-4 font-medium text-on-primary" [disabled]="saving()">
                 {{ config.label('common.save') }}
               </button>
@@ -110,7 +110,7 @@ export class Profile {
 
   protected readonly build = BUILD_INFO;
   protected readonly profile = this.auth.profile;
-  protected readonly username = signal(this.auth.profile()?.username ?? '');
+  protected readonly username = signal(this.auth.displayName());
   protected readonly saving = signal(false);
   protected readonly uploading = signal(false);
   /** File picker filter from AVATAR_IMAGE.types (any image when unset). */
@@ -139,7 +139,7 @@ export class Profile {
     const number = (this.config.get<string>('SUPPORT_WHATSAPP_NUMBER') ?? '').replace(/\D/g, '');
     if (!number) return null;
     const text = this.config.label('profile.whatsappText', {
-      username: this.profile()?.username,
+      username: this.auth.displayName(),
       shop: this.auth.shop()?.name ?? '-',
     });
     return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;

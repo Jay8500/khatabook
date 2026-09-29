@@ -50,7 +50,7 @@
             [attr.aria-label]="config.label('profile.open')"
             [title]="config.label('profile.open')"
           >
-            <app-avatar [url]="auth.profile()?.avatar_url" [name]="auth.profile()?.username" [size]="36" />
+            <app-avatar [url]="auth.profile()?.avatar_url" [name]="auth.displayName()" [size]="36" />
           </a>
         }
       </div>

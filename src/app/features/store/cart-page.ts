@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { StoreService } from '../../core/services/store.service';
@@ -9,6 +9,7 @@ import { QtyStepper } from '../../shared/qty-stepper/qty-stepper';
 import { SwipeRow } from '../../shared/swipe-row/swipe-row';
 
 const HINT_KEY = 'khata.cartSwipeHintSeen';
+const DRAFT_KEY = (slug: string) => `khata.checkout.${slug}`;
 
 /** /s/:slug/cart: review, choose pickup/delivery, add a note, request the order. */
 @Component({
@@ -131,6 +132,7 @@ export class CartPage {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly slug = input.required<string>();
 
@@ -160,21 +162,61 @@ export class CartPage {
     if (this.store.store()?.shop.slug !== this.slug()) await this.store.load(this.slug());
     const first = this.options()[0];
     if (first) this.fulfilment.set(first);
+
+    // Back from login / name step: restore the choices and send the order straight away.
+    const draft = this.readDraft();
+    if (draft) {
+      if (this.options().includes(draft.fulfilment)) this.fulfilment.set(draft.fulfilment);
+      this.address.set(draft.address);
+      this.note.set(draft.note);
+      if (this.route.snapshot.queryParamMap.get('submit') && this.auth.isLoggedIn() && !this.auth.needsOnboarding()) {
+        this.clearDraft();
+        if (this.store.cart().length) await this.submit();
+      }
+    }
+  }
+
+  /** Keeps pickup/delivery, address and note across the login + name screens. */
+  private saveDraft(): void {
+    try {
+      sessionStorage.setItem(DRAFT_KEY(this.slug()), JSON.stringify({ fulfilment: this.fulfilment(), address: this.address(), note: this.note() }));
+    } catch {
+      // Without storage the customer re-enters them; the cart itself is kept.
+    }
+  }
+
+  private readDraft(): { fulfilment: Fulfilment; address: string; note: string } | null {
+    try {
+      return JSON.parse(sessionStorage.getItem(DRAFT_KEY(this.slug())) ?? 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  private clearDraft(): void {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY(this.slug()));
+    } catch {
+      // ignore
+    }
   }
 
   protected async submit(): Promise<void> {
-    const back = `/s/${this.slug()}/cart`;
-    // Login (as a customer) and name first; the cart is kept and we come back here.
+    if (this.fulfilment() === 'delivery' && !this.address().trim()) {
+      this.toast.show('address_required', 'warning');
+      return;
+    }
+    // Login (as a customer) and name first; we come back here and the order is sent automatically.
+    const back = `/s/${this.slug()}/cart?submit=1`;
     if (!this.auth.isLoggedIn()) {
+      this.saveDraft();
+      this.toast.show('loginToOrder', 'info');
       await this.router.navigate(['/login'], { queryParams: { returnUrl: back, as: 'customer' } });
       return;
     }
     if (this.auth.needsOnboarding()) {
+      this.saveDraft();
       await this.router.navigate(['/onboarding'], { queryParams: { returnUrl: back } });
-      return;
-    }
-    if (this.fulfilment() === 'delivery' && !this.address().trim()) {
-      this.toast.show('address_required', 'warning');
       return;
     }
 

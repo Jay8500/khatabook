@@ -13,7 +13,7 @@ import { OrderCard } from './order-card';
   selector: 'app-my-orders',
   imports: [OrderCard, RouterLink],
   template: `
-    <h1 class="text-xl font-bold sm:text-2xl">{{ config.label('orders.greeting', { name: auth.profile()?.username }) }}</h1>
+    <h1 class="text-xl font-bold sm:text-2xl">{{ config.label('orders.greeting', { name: auth.displayName() }) }}</h1>
 
     <section class="mt-4">
       <div class="flex items-center justify-between">

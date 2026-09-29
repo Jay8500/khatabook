@@ -27,6 +27,7 @@ export class AuthService {
   readonly shop = computed(() => this._context()?.shop ?? null);
   readonly permissions = computed(() => this._context()?.role.permissions ?? {});
   readonly needsOnboarding = computed(() => this.isLoggedIn() && !this.profile()?.username);
+  readonly displayName = computed(() => this.profile()?.display_name || this.profile()?.username || '');
 
   /** Restores the stored session; runs after ConfigService.load(). */
   async init(): Promise<void> {
