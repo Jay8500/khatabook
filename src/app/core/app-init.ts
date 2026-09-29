@@ -12,7 +12,7 @@ export async function initApp(): Promise<void> {
   const auth = inject(AuthService);
 
   await config.load();
-  theme.apply();
+  theme.applyDefault();
   pwa.apply();
   await auth.init();
 }

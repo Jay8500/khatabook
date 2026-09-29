@@ -10,14 +10,24 @@ import { ConfigService } from './config.service';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly config = inject(ConfigService);
-  // OS setting until the signed-in user's users_profile.preferences.theme is known.
-  private readonly _mode = signal<ThemeMode>(
-    window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-  );
+  // Light until applyDefault() reads DEFAULT_THEME; a signed-in user's
+  // users_profile.preferences.theme overrides it.
+  private readonly _mode = signal<ThemeMode>('light');
   readonly mode = this._mode.asReadonly();
 
   constructor() {
     effect(() => this.apply(this._mode()));
+  }
+
+  /** app_settings DEFAULT_THEME: "light", "dark" or "system" (follow the phone). */
+  applyDefault(): void {
+    const setting = this.config.get<string>('DEFAULT_THEME');
+    if (setting === 'system') {
+      this._mode.set(window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } else {
+      this.setMode(setting);
+    }
+    this.apply();
   }
 
   /** Flips the mode and returns the new one (AuthService persists it to the profile). */

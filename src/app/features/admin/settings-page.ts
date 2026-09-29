@@ -14,7 +14,7 @@ interface SettingRow {
   description: string | null;
 }
 
-type Kind = 'text' | 'longtext' | 'number' | 'boolean' | 'time' | 'list' | 'colors' | 'json';
+type Kind = 'choice' | 'text' | 'longtext' | 'number' | 'boolean' | 'time' | 'list' | 'colors' | 'json';
 
 const HEX = /^#[0-9a-f]{3,8}$/i;
 
@@ -96,7 +96,10 @@ function humanize(key: string): string {
                     <span class="mt-0.5 block text-xs text-muted">{{ row.description }}</span>
                   </span>
                   <span class="max-w-[45%] shrink-0 text-right text-sm">
-                    @switch (kind(row.value)) {
+                    @switch (kindFor(row)) {
+                      @case ('choice') {
+                        <span class="font-medium">{{ choiceLabel(row.value) }}</span>
+                      }
                       @case ('boolean') {
                         <span class="rounded-full px-2.5 py-1 text-xs font-semibold" [class]="row.value ? 'bg-success/15 text-success' : 'bg-muted/15 text-muted'">
                           {{ config.label(row.value ? 'settings.on' : 'settings.off') }}
@@ -143,6 +146,20 @@ function humanize(key: string): string {
               <app-template-editor [value]="$any(draft())" (valueChange)="draft.set($event)" [variables]="settingVariables()" />
             } @else {
             @switch (draftKind()) {
+              @case ('choice') {
+                <div class="grid gap-2" [style.grid-template-columns]="'repeat(' + choices().length + ', minmax(0, 1fr))'">
+                  @for (c of choices(); track c) {
+                    <button
+                      type="button"
+                      class="rounded-xl border px-3 py-3 text-sm font-medium"
+                      [class]="draft() === c ? 'border-primary bg-primary text-on-primary' : 'border-border bg-background'"
+                      (click)="draft.set(c)"
+                    >
+                      {{ choiceLabel(c) }}
+                    </button>
+                  }
+                </div>
+              }
               @case ('boolean') {
                 <button
                   type="button"
@@ -267,7 +284,13 @@ export class SettingsPage {
 
   protected readonly draftKind = computed(() => {
     const row = this.editing();
-    return row ? kindOf(row.value) : 'text';
+    return row ? this.kindFor(row) : 'text';
+  });
+
+  /** Allowed values for the setting being edited (SETTING_CHOICES). */
+  protected readonly choices = computed(() => {
+    const row = this.editing();
+    return row ? this.choicesOf(row.key) : [];
   });
 
   /** Settings grouped by SETTING_CATEGORIES order; other categories have their own screens. */
@@ -291,6 +314,19 @@ export class SettingsPage {
     } catch (err) {
       this.toast.error(err);
     }
+  }
+
+  private choicesOf(key: string): string[] {
+    return this.config.get<Record<string, string[]>>('SETTING_CHOICES')?.[key] ?? [];
+  }
+
+  protected kindFor(row: SettingRow): Kind {
+    return this.choicesOf(row.key).length ? 'choice' : kindOf(row.value);
+  }
+
+  protected choiceLabel(value: unknown): string {
+    const label = `settings.choice.${String(value)}`;
+    return this.config.hasLabel(label) ? this.config.label(label) : String(value);
   }
 
   protected name(key: string): string {

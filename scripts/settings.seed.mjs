@@ -205,6 +205,9 @@ const labels = {
   'settings.itemPlaceholder': 'New item',
   'settings.json': 'Value (JSON, for technical users)',
   'settings.whoSees': 'Who receives this setting',
+  'settings.choice.light': 'Light',
+  'settings.choice.dark': 'Dark',
+  'settings.choice.system': 'Same as phone',
   'settings.mode.light': 'Light mode',
   'settings.mode.dark': 'Dark mode',
 
@@ -281,8 +284,10 @@ const toasts = {
   scanSaved: 'Bill saved.',
   scanFailed: 'Could not save the bill.',
   adminPhonesEmpty: 'Keep at least one admin phone.',
-  photoUpdated: 'Photo updated.',
+  photoUpdated: 'Profile photo updated.',
   photoFailed: 'Could not upload the photo.',
+  photoType: 'Please choose a {types} photo.',
+  photoTooBig: 'That photo is too big. Choose one under {mb} MB.',
   remindersChecked: '{count} new reminder(s) created.',
   invalidPhone: 'Enter a valid {digits}-digit mobile number.',
   codeCopied: 'Code copied.',
@@ -313,6 +318,7 @@ const theme = {
 // Earlier default values. If a setting still holds one of these (no admin edit), it is
 // switched to the current default.
 const PREVIOUS_DEFAULTS = {
+  AVATAR_IMAGE: [{ max_px: 512, quality: 0.85 }],
   SMS_PROVIDER: [{ provider: 'log' }],
   THEME_COLORS: [
     {
@@ -333,6 +339,7 @@ const PREVIOUS_DEFAULTS = {
 // Earlier default wording of individual texts ("<SETTING>": { "<text key>": [old, ...] }).
 // Texts still on old wording get the current wording; texts admins edited stay.
 const PREVIOUS_TEXTS = {
+  TOAST_MESSAGES: { photoUpdated: ['Photo updated.'] },
   UI_LABELS: {
     'messages.hint': [
       'Every word in the app comes from here. Change a text and press Save; it updates for everyone right away. Keep words in {curly brackets}: the app fills them in.',
@@ -358,6 +365,8 @@ const textVariables = {
   'TOAST_MESSAGES.remindersChecked': [v('count', 'Number of reminders', '2')],
   'UI_LABELS.loginCodes.expiresIn': [v('minutes', 'Minutes left', '4')],
   'TOAST_MESSAGES.newLoginCode': [v('phone', 'Mobile number', '+91 98765 43210')],
+  'TOAST_MESSAGES.photoType': [v('types', 'Allowed types', 'JPEG, PNG, WEBP')],
+  'TOAST_MESSAGES.photoTooBig': [v('mb', 'Size limit (MB)', '5')],
   'TOAST_MESSAGES.invalidPhone': [v('digits', 'Number of digits', '10')],
   'TOAST_MESSAGES.invalidOtpLength': [v('digits', 'Number of digits', '6')],
   OTP_SMS_TEMPLATE: [v('otp', 'Login code', '482913')],
@@ -402,6 +411,7 @@ const SETTINGS = [
   ['DEFAULT_ROLE_NAME', 'shop_owner', 'admin', 'login', 'Customer role', 'Role given to everyone else when they first log in.'],
 
   // Appearance
+  ['DEFAULT_THEME', 'light', 'public', 'appearance', 'Default mode', 'Light or dark when someone opens the app. "system" follows the phone setting. Each person can still switch with the moon button; their choice is remembered.'],
   ['THEME_COLORS', theme, 'public', 'appearance', 'Colours', 'App colours for light and dark mode.'],
   ['APP_LOGO_URL', 'favicon.svg', 'public', 'appearance', 'Logo', 'Logo in the header: a file of the app or a web link to an image.'],
   ['BRAND', { name: 'Spread Apps', url: 'https://spreadapps.in', logoUrl: 'brand/spreadapps-logo.svg' }, 'public', 'appearance', 'Powered-by credit', 'Company name, link and logo in the "Powered by" line.'],
@@ -412,7 +422,8 @@ const SETTINGS = [
   ['BILLS_BUCKET', 'bills', 'authenticated', 'advanced', 'Bill photo storage', 'Storage bucket for bill photos.'],
   ['AVATARS_BUCKET', 'avatars', 'authenticated', 'advanced', 'Profile photo storage', 'Storage bucket for profile photos.'],
   ['BILL_IMAGE', { max_px: 1600, quality: 0.8 }, 'authenticated', 'advanced', 'Bill photo size', 'Bill photos are shrunk to max_px pixels and quality (0-1) before upload.'],
-  ['AVATAR_IMAGE', { max_px: 512, quality: 0.85 }, 'authenticated', 'advanced', 'Profile photo size', 'Profile photos are shrunk to max_px pixels and quality (0-1) before upload.'],
+  ['AVATAR_IMAGE', { max_px: 512, quality: 0.85, max_mb: 5, types: ['image/jpeg', 'image/png', 'image/webp'] }, 'authenticated', 'advanced', 'Profile photo rules', 'Allowed photo types and the largest file (max_mb). Photos are then shrunk to max_px pixels at this quality (0-1) before upload.'],
+  ['SETTING_CHOICES', { DEFAULT_THEME: ['light', 'dark', 'system'] }, 'admin', 'advanced', 'Setting choices', 'Settings that are picked from a fixed list instead of typed.'],
   ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'advanced', 'QR scanner', 'Camera frames per second and scan box size for the bill QR scanner.'],
   ['MESSAGE_SETTINGS', ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'], 'admin', 'advanced', 'Text groups', 'Which text groups appear in Texts & messages.'],
   ['SETTING_VISIBILITIES', ['public', 'authenticated', 'admin'], 'admin', 'advanced', 'Visibility choices', 'Who a setting can be sent to.'],

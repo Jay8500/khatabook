@@ -7,6 +7,8 @@ export interface Toast {
   id: number;
   type: ToastType;
   text: string;
+  /** Optional round thumbnail, e.g. the new profile photo. */
+  image?: string;
 }
 
 /** Toast texts come from app_settings TOAST_MESSAGES, looked up by key. */
@@ -17,9 +19,9 @@ export class ToastService {
   private nextId = 0;
   readonly toasts = this._toasts.asReadonly();
 
-  show(messageKey: string, type: ToastType = 'info', vars?: Record<string, unknown>): void {
+  show(messageKey: string, type: ToastType = 'info', vars?: Record<string, unknown>, image?: string): void {
     const text = format(this.config.message('TOAST_MESSAGES', messageKey), vars);
-    const toast: Toast = { id: ++this.nextId, type, text };
+    const toast: Toast = { id: ++this.nextId, type, text, image };
     this._toasts.update((list) => [...list, toast]);
 
     const duration = this.config.get<number>('TOAST_DURATION_MS');

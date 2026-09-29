@@ -38,7 +38,7 @@
         @if (auth.isLoggedIn() && !auth.needsOnboarding()) {
           <a
             routerLink="/profile"
-            class="rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-surface hover:ring-primary"
+            class="grid size-9 shrink-0 place-items-center rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-surface hover:ring-primary"
             routerLinkActive="!ring-primary"
             [attr.aria-label]="config.label('profile.open')"
             [title]="config.label('profile.open')"

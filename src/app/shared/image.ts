@@ -2,6 +2,20 @@
 export interface ImageRules {
   max_px?: number;
   quality?: number;
+  /** Largest original file accepted, in MB. */
+  max_mb?: number;
+  /** Accepted MIME types, e.g. ["image/jpeg", "image/png", "image/webp"]. */
+  types?: string[];
+}
+
+/**
+ * Checks a picked file against the rules. Returns a TOAST_MESSAGES key describing the
+ * problem ('photoType' / 'photoTooBig'), or null when the file is fine.
+ */
+export function checkImage(file: File, rules: ImageRules = {}): 'photoType' | 'photoTooBig' | null {
+  if (rules.types?.length && !rules.types.includes(file.type)) return 'photoType';
+  if (rules.max_mb && file.size > rules.max_mb * 1024 * 1024) return 'photoTooBig';
+  return null;
 }
 
 /** Resizes to fit max_px and re-encodes as JPEG, so uploads stay small. */

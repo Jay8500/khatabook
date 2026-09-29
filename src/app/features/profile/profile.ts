@@ -7,6 +7,7 @@ import { CrudService } from '../../core/services/crud.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Avatar } from '../../shared/avatar/avatar';
 import { BrandCredit } from '../../shared/brand-credit/brand-credit';
+import { ImageRules } from '../../shared/image';
 
 @Component({
   selector: 'app-profile',
@@ -15,18 +16,20 @@ import { BrandCredit } from '../../shared/brand-credit/brand-credit';
     <div class="mx-auto grid max-w-lg gap-4">
       <!-- Photo + name -->
       <section class="rounded-3xl border border-border bg-surface p-6 text-center">
-        <label class="group relative mx-auto block w-fit cursor-pointer">
+        <label class="group relative mx-auto flex w-fit cursor-pointer">
           <app-avatar [url]="profile()?.avatar_url" [name]="profile()?.username" [size]="104" />
+          @if (uploading()) {
+            <!-- Loader inside the circle while the photo uploads -->
+            <span class="absolute inset-0 grid place-items-center rounded-full bg-black/45">
+              <span class="size-9 animate-spin rounded-full border-[3px] border-white/30 border-t-white"></span>
+            </span>
+          }
           <span class="absolute -bottom-1 -right-1 grid size-9 place-items-center rounded-full border-4 border-surface bg-primary text-on-primary">
-            @if (uploading()) {
-              <span class="size-3 animate-ping rounded-full bg-on-primary"></span>
-            } @else {
-              <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.2">
-                <path d="M4 7h3l2-3h6l2 3h3v12H4z" /><circle cx="12" cy="13" r="3.5" />
-              </svg>
-            }
+            <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M4 7h3l2-3h6l2 3h3v12H4z" /><circle cx="12" cy="13" r="3.5" />
+            </svg>
           </span>
-          <input type="file" accept="image/*" class="hidden" [disabled]="uploading()" (change)="pickPhoto($event)" />
+          <input type="file" [accept]="acceptTypes" class="hidden" [disabled]="uploading()" (change)="pickPhoto($event)" />
           <span class="sr-only">{{ config.label('profile.changePhoto') }}</span>
         </label>
 
@@ -110,6 +113,8 @@ export class Profile {
   protected readonly username = signal(this.auth.profile()?.username ?? '');
   protected readonly saving = signal(false);
   protected readonly uploading = signal(false);
+  /** File picker filter from AVATAR_IMAGE.types (any image when unset). */
+  protected readonly acceptTypes = (this.config.get<ImageRules>('AVATAR_IMAGE')?.types ?? ['image/*']).join(',');
   private readonly planName = signal('');
 
   protected readonly phone = computed(() => {
@@ -155,6 +160,11 @@ export class Profile {
     }
   }
 
+  /** ["image/jpeg", "image/png"] -> "JPEG, PNG" */
+  private typeNames(types: string[] = []): string {
+    return types.map((t) => t.split('/')[1]?.toUpperCase()).join(', ');
+  }
+
   protected async pickPhoto(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -162,11 +172,19 @@ export class Profile {
     if (!file) return;
     this.uploading.set(true);
     try {
-      await this.auth.uploadAvatar(file);
-      this.toast.show('photoUpdated', 'success');
+      const url = await this.auth.uploadAvatar(file);
+      this.toast.show('photoUpdated', 'success', undefined, url);
     } catch (err) {
       console.error(err);
-      this.toast.show('photoFailed', 'error');
+      const message = (err as { message?: string } | null)?.message;
+      const rules = this.config.get<ImageRules>('AVATAR_IMAGE') ?? {};
+      if (message === 'photoType') {
+        this.toast.show('photoType', 'warning', { types: this.typeNames(rules.types) });
+      } else if (message === 'photoTooBig') {
+        this.toast.show('photoTooBig', 'warning', { mb: rules.max_mb });
+      } else {
+        this.toast.show('photoFailed', 'error');
+      }
     } finally {
       this.uploading.set(false);
     }

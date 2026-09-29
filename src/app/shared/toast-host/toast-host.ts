@@ -9,10 +9,13 @@ import { ToastService, ToastType } from '../../core/services/toast.service';
       @for (toast of toasts.toasts(); track toast.id) {
         <div
           role="status"
-          class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border border-border border-l-4 bg-surface px-4 py-3 text-sm shadow-lg"
+          class="pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl border border-border border-l-4 bg-surface px-4 py-3 text-sm shadow-lg"
           [class]="accent[toast.type]"
         >
-          <p class="flex-1">{{ toast.text }}</p>
+          @if (toast.image) {
+            <img [src]="toast.image" alt="" class="size-9 shrink-0 rounded-full border-2 border-primary object-cover" />
+          }
+          <p class="flex-1 self-center">{{ toast.text }}</p>
           <button
             type="button"
             class="text-muted hover:text-text"
