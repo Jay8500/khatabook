@@ -149,14 +149,16 @@ const FLOW: OrderStatus[] = ['requested', 'accepted', 'packed', 'ready', 'comple
                     <p class="mt-1 text-xs text-muted">{{ config.label('orders.scanToPay') }} · {{ d.shop.upi_id }}</p>
                   </div>
                 }
-                <form class="mt-4 grid gap-2" (submit)="$event.preventDefault(); reportPaid()">
-                  <p class="text-sm font-medium">{{ config.label('orders.afterPaying') }}</p>
-                  <input [class]="inputClass" [placeholder]="config.label('orders.utr')" [value]="utr()" (input)="utr.set($any($event.target).value)" />
-                  <button type="submit" class="rounded-xl border-2 border-primary px-4 py-2.5 font-semibold text-primary" [disabled]="busy()">{{ config.label('orders.iHavePaid') }}</button>
-                </form>
               } @else {
                 <p class="mt-3 text-sm">{{ config.label('orders.noUpi') }}</p>
               }
+              <!-- Paid by UPI, cash or bank: the customer tells the shop either way. -->
+              <form class="mt-4 grid gap-2" (submit)="$event.preventDefault(); reportPaid()">
+                <p class="text-sm font-medium">{{ config.label('orders.afterPaying') }}</p>
+                <input [class]="inputClass" [placeholder]="config.label('orders.utr')" [value]="utr()" (input)="utr.set($any($event.target).value)" />
+                <button type="submit" class="rounded-xl border-2 border-primary px-4 py-2.5 font-semibold text-primary" [disabled]="busy()">{{ config.label('orders.iHavePaid') }}</button>
+              </form>
+
             }
           } @else if (balance() > 0) {
             <form class="mt-3 grid grid-cols-[1fr_auto] gap-2" (submit)="$event.preventDefault(); confirmPayment()">
