@@ -1,16 +1,19 @@
 import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { NAV } from './app.routes';
 import { AuthService } from './core/services/auth.service';
 import { ConfigService } from './core/services/config.service';
 import { NetworkService } from './core/services/network.service';
 import { ThemeService } from './core/services/theme.service';
-import { ToastService } from './core/services/toast.service';
+import { Avatar } from './shared/avatar/avatar';
+import { BrandCredit } from './shared/brand-credit/brand-credit';
 import { ToastHost } from './shared/toast-host/toast-host';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ToastHost],
+  imports: [Avatar, BrandCredit, RouterLink, RouterLinkActive, RouterOutlet, ToastHost],
   templateUrl: './app.html',
 })
 export class App {
@@ -18,8 +21,16 @@ export class App {
   protected readonly theme = inject(ThemeService);
   protected readonly network = inject(NetworkService);
   protected readonly auth = inject(AuthService);
-  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+  protected readonly onProfile = computed(() => this.url().startsWith('/profile'));
 
   protected readonly nav = computed(() =>
     !this.auth.isLoggedIn() || this.auth.needsOnboarding()
@@ -30,11 +41,5 @@ export class App {
   protected toggleTheme(): void {
     const mode = this.theme.toggle();
     this.auth.savePreference('theme', mode).catch((err) => console.error(err));
-  }
-
-  protected async logout(): Promise<void> {
-    await this.auth.signOut();
-    this.toast.show('logout', 'info');
-    await this.router.navigateByUrl('/login');
   }
 }

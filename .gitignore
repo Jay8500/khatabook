@@ -48,3 +48,4 @@ Thumbs.db
 
 # Supabase local env
 supabase/.env
+src/app/core/build-info.ts

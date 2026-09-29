@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Session } from '@supabase/supabase-js';
+import { ImageRules, compressImage } from '../../shared/image';
 import { UserContext } from '../types/models';
 import { ConfigService } from './config.service';
 import { SupabaseService } from './supabase.service';
@@ -81,6 +82,31 @@ export class AuthService {
       p_shop_name: shopName,
     });
     this._context.set(context);
+  }
+
+  async updateProfile(username: string, avatarUrl: string | null): Promise<void> {
+    const context = await this.supabase.callSecureRpc<UserContext>('update_my_profile', {
+      p_username: username,
+      p_avatar_url: avatarUrl,
+    });
+    this._context.set(context);
+  }
+
+  /** Uploads to <AVATARS_BUCKET>/<user id>/avatar.jpg and saves the public URL on the profile. */
+  async uploadAvatar(file: File): Promise<void> {
+    const profile = this.profile();
+    const bucket = this.config.get<string>('AVATARS_BUCKET');
+    if (!profile || !bucket) throw new Error('photoFailed');
+
+    const blob = await compressImage(file, this.config.get<ImageRules>('AVATAR_IMAGE'));
+    const path = `${profile.id}/avatar.jpg`;
+    const storage = this.supabase.requireClient().storage.from(bucket);
+    const { error } = await storage.upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (error) throw error;
+
+    // Same path on every upload, so bust caches with a version query.
+    const url = `${storage.getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+    await this.updateProfile(profile.username ?? '', url);
   }
 
   async savePreference(key: string, value: unknown): Promise<void> {

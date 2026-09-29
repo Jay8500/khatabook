@@ -76,6 +76,12 @@ logs (Supabase dashboard → Edge Functions → send-sms → Logs). For real SMS
 Test phone numbers (`[auth.sms.test_otp]`) cannot be removed with `config push`; clear
 `sms_test_otp` via the dashboard or Management API.
 
+## Version
+
+The version shown on the profile page comes from `package.json` (`major.minor.patch`) plus
+the git commit, via `scripts/build-info.mjs` (runs before start/build/test). Bump it with
+`npm version patch` (fixes), `npm version minor` (features) or `npm version major`.
+
 ## Deploy
 
 Netlify (`netlify.toml`): build `npm run build`, publish `dist/khatabk/browser`.

@@ -6,6 +6,7 @@ export interface UserProfile {
   username: string | null;
   role_id: string | null;
   shop_id: string | null;
+  avatar_url: string | null;
   preferences: Record<string, unknown>;
 }
 

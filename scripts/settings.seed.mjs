@@ -1,8 +1,9 @@
 // Source of truth for the initial app_settings rows. Generates:
 //   <migration file passed as argv[2]>  all settings, roles, default plan
 //   public/config/bootstrap.json        public settings only (offline / first paint)
-// Run: node scripts/settings.seed.mjs supabase/migrations/<timestamp>_seed.sql
-// Seeds only: admins change values in the app afterwards.
+// Run: node scripts/settings.seed.mjs supabase/migrations/<timestamp>_settings.sql
+// The SQL is idempotent: existing settings are left alone, except that new keys are
+// merged into the text maps (MERGE_KEYS). Generate a new migration whenever keys are added.
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const labels = {
@@ -158,6 +159,23 @@ const labels = {
   'adminPhones.placeholder': 'Mobile number',
   'adminPhones.removeSelf': 'This is your own number. You will lose admin access. Continue?',
 
+  'profile.open': 'Open profile',
+  'profile.title': 'My profile',
+  'profile.changePhoto': 'Change photo',
+  'profile.username': 'Username',
+  'profile.phone': 'Mobile',
+  'profile.shop': 'Shop',
+  'profile.role': 'Role',
+  'profile.plan': 'Plan',
+  'profile.validTill': 'Valid till',
+  'profile.support': 'Need help?',
+  'profile.supportHint': 'Chat with us on WhatsApp. We usually reply within a few hours.',
+  'profile.whatsapp': 'Chat on WhatsApp',
+  'profile.whatsappText': 'Hi, I need help with Khata. Username: {username}, Shop: {shop}',
+  'profile.ticket': 'Raise a support ticket',
+  'profile.logout': 'Log out',
+  'profile.version': 'Version {version}',
+
   'messages.title': 'Texts & messages',
   'messages.UI_LABELS': 'Screen labels',
   'messages.TOAST_MESSAGES': 'Pop-up messages',
@@ -187,6 +205,8 @@ const toasts = {
   scanSaved: 'Bill saved.',
   scanFailed: 'Could not save the bill.',
   adminPhonesEmpty: 'Keep at least one admin phone.',
+  photoUpdated: 'Photo updated.',
+  photoFailed: 'Could not upload the photo.',
 };
 
 const theme = {
@@ -234,6 +254,8 @@ const SETTINGS = [
   ['BILLS_BUCKET', 'bills', 'authenticated', 'Storage bucket for bill photos'],
   ['BILL_IMAGE', { max_px: 1600, quality: 0.8 }, 'authenticated', 'Bill photo downscale before upload'],
   ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'QR scanner camera settings'],
+  ['AVATARS_BUCKET', 'avatars', 'authenticated', 'Storage bucket for profile photos'],
+  ['AVATAR_IMAGE', { max_px: 512, quality: 0.85 }, 'authenticated', 'Profile photo downscale before upload'],
 
   ['ADMIN_PHONES', [], 'admin', 'Numbers that get ADMIN_ROLE_NAME (digits with country code)'],
   ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'Role given to ADMIN_PHONES'],
@@ -262,6 +284,9 @@ const ROLES = [
   ['shop_owner', 'Runs their own shop', { can_manage_own_shop: true }],
   ['staff', 'Works in a shop', { can_manage_own_shop: true }],
 ];
+
+// jsonb object settings whose keys grow with the app.
+const MERGE_KEYS = ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'];
 
 // [name, price, duration_days, features, sort_order]
 const PLANS = [['Free Trial', 0, 14, ['All features'], 0]];
@@ -310,6 +335,11 @@ const sql = [
   ...SETTINGS.map(
     ([k, v, vis, d]) =>
       `insert into public.app_settings (key, value, visibility, description) values (${q(k)}, ${j(v)}, ${q(vis)}, ${q(d)}) on conflict (key) do nothing;`,
+  ),
+  '',
+  '-- Text maps: add keys that are new in code; texts admins already edited win.',
+  ...SETTINGS.filter(([k]) => MERGE_KEYS.includes(k)).map(
+    ([k, v]) => `update public.app_settings set value = ${j(v)} || value where key = ${q(k)};`,
   ),
   '',
 ].join('\n');

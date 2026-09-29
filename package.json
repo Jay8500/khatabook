@@ -1,6 +1,6 @@
 {
   "name": "khatabk",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,14 +8,17 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "check:index": "node scripts/check-index.mjs",
-    "prebuild": "node scripts/check-index.mjs",
+    "prebuild": "node scripts/check-index.mjs && node scripts/build-info.mjs",
     "netlify:deploy": "netlify deploy --dir=dist/khatabk/browser --no-build",
     "netlify:deploy:prod": "netlify deploy --dir=dist/khatabk/browser --no-build --prod",
     "supabase:link": "supabase link",
     "supabase:push": "supabase db push",
     "supabase:functions": "supabase functions deploy",
     "supabase:types": "supabase gen types typescript --linked --schema public > src/app/core/types/supabase.ts",
-    "seed:settings": "node scripts/settings.seed.mjs"
+    "seed:settings": "node scripts/settings.seed.mjs",
+    "build-info": "node scripts/build-info.mjs",
+    "prestart": "node scripts/build-info.mjs",
+    "pretest": "node scripts/build-info.mjs"
   },
   "private": true,
   "packageManager": "npm@12.0.1",

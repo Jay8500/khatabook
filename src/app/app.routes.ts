@@ -55,6 +55,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/purchases/purchases').then((m) => m.Purchases),
       },
       { path: 'support', data: { entity: 'support' }, loadComponent: crudPage },
+      { path: 'profile', loadComponent: () => import('./features/profile/profile').then((m) => m.Profile) },
       {
         path: 'admin',
         canActivate: [permissionGuard],

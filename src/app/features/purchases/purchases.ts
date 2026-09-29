@@ -8,16 +8,12 @@ import { ToastService } from '../../core/services/toast.service';
 import { Row } from '../../core/types/models';
 import { DataGrid } from '../../shared/data-grid/data-grid';
 import { FieldDef, Option, OptionMap } from '../../shared/entity';
+import { ImageRules, blobToBase64, compressImage } from '../../shared/image';
 
 interface Item {
   name: string;
   qty: number;
   rate: number;
-}
-
-interface ImageRules {
-  max_px?: number;
-  quality?: number;
 }
 
 interface ScannerRules {
@@ -215,15 +211,8 @@ export class Purchases implements OnDestroy {
 
   /** Downscales per app_settings BILL_IMAGE { max_px, quality } before upload. */
   private async compress(file: File): Promise<{ base64: string; type: string }> {
-    const rules = this.config.get<ImageRules>('BILL_IMAGE') ?? {};
-    const bitmap = await createImageBitmap(file);
-    const scale = rules.max_px ? Math.min(1, rules.max_px / Math.max(bitmap.width, bitmap.height)) : 1;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', rules.quality);
-    return { base64: dataUrl.split(',')[1], type: 'image/jpeg' };
+    const blob = await compressImage(file, this.config.get<ImageRules>('BILL_IMAGE'));
+    return { base64: await blobToBase64(blob), type: 'image/jpeg' };
   }
 
   protected async toggleQr(): Promise<void> {
