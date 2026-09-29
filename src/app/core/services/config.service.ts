@@ -49,6 +49,11 @@ export class ConfigService {
     return format(this.message('UI_LABELS', key), vars);
   }
 
+  /** True when UI_LABELS has this key (optional texts such as page hints). */
+  hasLabel(key: string): boolean {
+    return !!this.get<Record<string, string>>('UI_LABELS')?.[key];
+  }
+
   /** Values of a jsonb array setting (ISSUE_TYPES, TICKET_STATUSES, ...). */
   list(key: string): string[] {
     const value = this.get<unknown>(key);

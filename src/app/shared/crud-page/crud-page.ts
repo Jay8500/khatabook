@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { CrudService } from '../../core/services/crud.service';
+import { SupabaseService } from '../../core/services/supabase.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Row } from '../../core/types/models';
 import { DataGrid } from '../data-grid/data-grid';
@@ -15,12 +16,29 @@ import { EntityConfig, OptionMap, primaryKey } from '../entity';
   imports: [DataGrid, EntityForm],
   template: `
     @if (def(); as def) {
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <h1 class="text-xl font-bold sm:text-2xl">{{ config.label(def.labelPrefix + '.title') }}</h1>
-        @if (def.create !== false) {
-          <button type="button" class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:opacity-90" (click)="open(null)">
-            + {{ config.label('common.add') }}
-          </button>
+      <div class="mb-4">
+        <div class="flex items-center justify-between gap-3">
+          <h1 class="text-xl font-bold sm:text-2xl">{{ config.label(def.labelPrefix + '.title') }}</h1>
+          <div class="flex shrink-0 gap-2">
+            @if (def.action; as action) {
+              <button
+                type="button"
+                class="rounded-xl border border-primary px-4 py-2.5 text-sm font-medium hover:bg-primary hover:text-on-primary disabled:opacity-50"
+                [disabled]="running()"
+                (click)="runAction(action.rpc)"
+              >
+                {{ config.label(running() ? 'common.loading' : action.label) }}
+              </button>
+            }
+            @if (def.create !== false) {
+              <button type="button" class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:opacity-90" (click)="open(null)">
+                + {{ config.label('common.add') }}
+              </button>
+            }
+          </div>
+        </div>
+        @if (config.hasLabel(def.labelPrefix + '.hint')) {
+          <p class="mt-1 max-w-prose text-sm text-muted">{{ config.label(def.labelPrefix + '.hint') }}</p>
         }
       </div>
 
@@ -55,6 +73,7 @@ export class CrudPage {
   private readonly crud = inject(CrudService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly supabase = inject(SupabaseService);
 
   /** Bound from route data. */
   readonly entity = input.required<string>();
@@ -64,6 +83,7 @@ export class CrudPage {
   protected readonly options = signal<OptionMap>({});
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  protected readonly running = signal(false);
   protected readonly editing = signal<{ row: Row | null } | null>(null);
 
   constructor() {
@@ -102,6 +122,21 @@ export class CrudPage {
       this.toast.error(err);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /** Runs the page's action RPC (returns a count) and reloads. */
+  protected async runAction(rpc: string): Promise<void> {
+    this.running.set(true);
+    try {
+      const count = await this.supabase.callSecureRpc<number>(rpc);
+      if (count > 0) this.toast.show('remindersChecked', 'success', { count });
+      else this.toast.show('noNewReminders', 'info');
+      await this.load(this.def()!);
+    } catch (err) {
+      this.toast.error(err);
+    } finally {
+      this.running.set(false);
     }
   }
 

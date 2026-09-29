@@ -56,14 +56,14 @@ import { FieldDef, OptionMap, displayValue } from '../entity';
       </div>
 
       <!-- Phone -->
-      <ul class="grid gap-3 md:hidden">
+      <ul class="grid grid-cols-1 gap-3 md:hidden">
         @for (row of filtered(); track $index) {
-          <li class="rounded-2xl border border-border bg-surface p-4">
+          <li class="min-w-0 rounded-2xl border border-border bg-surface p-4">
             <dl class="grid gap-2">
               @for (col of columns(); track col.key) {
-                <div class="flex items-start justify-between gap-3 text-sm">
+                <div class="flex min-w-0 items-start justify-between gap-3 text-sm">
                   <dt class="shrink-0 text-muted">{{ config.label(labelPrefix() + '.' + col.key) }}</dt>
-                  <dd class="min-w-0 break-words text-right font-medium">{{ cell(col, row) }}</dd>
+                  <dd class="line-clamp-3 min-w-0 text-right font-medium wrap-anywhere">{{ cell(col, row) }}</dd>
                 </div>
               }
             </dl>

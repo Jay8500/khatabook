@@ -3,7 +3,7 @@ import { permissionGuard } from '../../core/guards';
 
 /** Admin sub-pages; each is visible and reachable only with its permission. */
 export const ADMIN_SECTIONS = [
-  { path: 'settings', label: 'admin.settings', permission: 'can_manage_settings', entity: 'settings' },
+  { path: 'settings', label: 'admin.settings', permission: 'can_manage_settings' },
   { path: 'admin-phones', label: 'admin.adminPhones', permission: 'can_manage_settings' },
   { path: 'messages', label: 'admin.messages', permission: 'can_manage_settings' },
   { path: 'roles', label: 'admin.roles', permission: 'can_manage_roles', entity: 'roles' },
@@ -26,6 +26,12 @@ export const ADMIN_ROUTES: Routes = [
         data: { permission: s.permission, entity: s.entity },
         loadComponent: crudPage,
       })),
+      {
+        path: 'settings',
+        canActivate: [permissionGuard],
+        data: { permission: 'can_manage_settings' },
+        loadComponent: () => import('./settings-page').then((m) => m.SettingsPage),
+      },
       {
         path: 'admin-phones',
         canActivate: [permissionGuard],

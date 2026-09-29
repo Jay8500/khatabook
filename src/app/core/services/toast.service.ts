@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { ConfigService } from './config.service';
+import { ConfigService, format } from './config.service';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -17,8 +17,8 @@ export class ToastService {
   private nextId = 0;
   readonly toasts = this._toasts.asReadonly();
 
-  show(messageKey: string, type: ToastType = 'info'): void {
-    const text = this.config.message('TOAST_MESSAGES', messageKey);
+  show(messageKey: string, type: ToastType = 'info', vars?: Record<string, unknown>): void {
+    const text = format(this.config.message('TOAST_MESSAGES', messageKey), vars);
     const toast: Toast = { id: ++this.nextId, type, text };
     this._toasts.update((list) => [...list, toast]);
 

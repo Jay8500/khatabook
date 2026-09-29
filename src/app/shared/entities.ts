@@ -16,12 +16,6 @@ const fromSetting =
   ({ config }: OptionContext): Option[] =>
     config.list(key).map((v) => ({ value: v, label: v }));
 
-/** Options from a jsonb array setting whose values are also UI_LABELS keys. */
-const fromSettingLabelled =
-  (key: string, labelPrefix: string) =>
-  ({ config }: OptionContext): Option[] =>
-    config.list(key).map((v) => ({ value: v, label: config.label(`${labelPrefix}.${v}`) }));
-
 export const ENTITIES: Record<string, EntityConfig> = {
   // ---- Shop -----------------------------------------------------------------
   stocks: {
@@ -49,6 +43,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
     scope: 'shop',
     order: 'reminder_date.desc',
     create: false,
+    action: { label: 'reminders.checkNow', rpc: 'generate_my_stock_reminders' },
     fields: [
       { key: 'reminder_date', type: 'date', form: false },
       { key: 'message', form: false },
@@ -72,22 +67,6 @@ export const ENTITIES: Record<string, EntityConfig> = {
   },
 
   // ---- Admin ----------------------------------------------------------------
-  settings: {
-    table: 'app_settings',
-    labelPrefix: 'settings',
-    order: 'key',
-    fields: [
-      { key: 'key', required: true, readonlyOnEdit: true },
-      { key: 'value', type: 'json', required: true },
-      {
-        key: 'visibility',
-        type: 'select',
-        required: true,
-        options: fromSettingLabelled('SETTING_VISIBILITIES', 'settings.visibility'),
-      },
-      { key: 'description', type: 'textarea' },
-    ],
-  },
   roles: {
     table: 'roles',
     labelPrefix: 'roles',

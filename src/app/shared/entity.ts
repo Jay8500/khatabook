@@ -42,6 +42,8 @@ export interface EntityConfig {
   create?: boolean;
   edit?: boolean;
   remove?: boolean;
+  /** Extra header button that calls an RPC returning a count (e.g. check stock now). */
+  action?: { label: string; rpc: string };
 }
 
 export type OptionMap = Record<string, Option[]>;

@@ -176,6 +176,67 @@ const labels = {
   'profile.logout': 'Log out',
   'profile.version': 'Version {version}',
 
+  // Page explanations (shown under each title)
+  'settings.hint': 'These control how the app works for everyone. Tap a setting to change it; changes apply right away.',
+  'messages.hint': 'Every word in the app comes from here. Change a text and press Save; it updates for everyone right away. Keep words in {curly brackets}: the app fills them in.',
+  'roles.hint': 'A role is a set of permissions. Numbers in Admin phones get the admin role, everyone else the customer role. Permissions decide which tabs a person sees.',
+  'pricing.hint': 'Plans a shop can be on. New shops start on the plan named in Settings → Plan for new shops.',
+  'shops.hint': 'Every customer shop. Change a shop\'s plan or extend its "valid till" date here.',
+  'users.hint': 'Everyone who has logged in. You can change a person\'s role or shop.',
+  'tickets.hint': 'Support tickets from customers. Update the status as you work on them.',
+  'stocks.hint': 'Your products and quantities. When a quantity drops to its low-stock limit, you get a reminder.',
+  'vendors.hint': 'People and companies you buy from.',
+  'reminders.hint': 'Products at or below their low-stock limit. The app checks every day at the reminder time; tap "Check stock now" to check immediately.',
+  'reminders.checkNow': 'Check stock now',
+  'support.hint': 'Tell us about a problem. We reply and update the status here.',
+
+  // Settings screen
+  'settings.category.general': 'General',
+  'settings.category.business': 'Business',
+  'settings.category.login': 'Login & SMS',
+  'settings.category.appearance': 'Look & feel',
+  'settings.category.advanced': 'Advanced (technical)',
+  'settings.showAdvanced': 'Show',
+  'settings.hideAdvanced': 'Hide',
+  'settings.on': 'On',
+  'settings.off': 'Off',
+  'settings.empty': '(empty)',
+  'settings.items': '{count} values',
+  'settings.itemPlaceholder': 'New item',
+  'settings.json': 'Value (JSON, for technical users)',
+  'settings.whoSees': 'Who receives this setting',
+  'settings.mode.light': 'Light mode',
+  'settings.mode.dark': 'Dark mode',
+
+  // Texts & messages groups (first part of each key)
+  'messages.group.app': 'Header & logo',
+  'messages.group.footer': 'Footer',
+  'messages.group.network': 'Online status',
+  'messages.group.theme': 'Dark mode button',
+  'messages.group.toast': 'Pop-up close button',
+  'messages.group.nav': 'Menu',
+  'messages.group.common': 'Common buttons & words',
+  'messages.group.login': 'Login screen',
+  'messages.group.onboarding': 'First-time setup',
+  'messages.group.home': 'Home screen',
+  'messages.group.stocks': 'Stock screen',
+  'messages.group.vendors': 'Vendors screen',
+  'messages.group.reminders': 'Reminders screen',
+  'messages.group.purchases': 'Purchases screen',
+  'messages.group.support': 'Support screen',
+  'messages.group.profile': 'Profile screen',
+  'messages.group.admin': 'Admin menu',
+  'messages.group.settings': 'Settings screen',
+  'messages.group.settingName': 'Setting names',
+  'messages.group.roles': 'Roles screen',
+  'messages.group.pricing': 'Pricing screen',
+  'messages.group.shops': 'Shops screen',
+  'messages.group.users': 'Users screen',
+  'messages.group.tickets': 'Tickets screen',
+  'messages.group.adminPhones': 'Admin phones screen',
+  'messages.group.messages': 'Texts & messages screen',
+  'messages.group.other': 'Other',
+
   'messages.title': 'Texts & messages',
   'messages.UI_LABELS': 'Screen labels',
   'messages.TOAST_MESSAGES': 'Pop-up messages',
@@ -207,6 +268,8 @@ const toasts = {
   adminPhonesEmpty: 'Keep at least one admin phone.',
   photoUpdated: 'Photo updated.',
   photoFailed: 'Could not upload the photo.',
+  remindersChecked: '{count} new reminder(s) created.',
+  noNewReminders: 'No new reminders. Stock looks fine.',
 };
 
 const theme = {
@@ -228,45 +291,60 @@ const icons = [72, 96, 128, 144, 152, 192, 384, 512]
     [192, 512].map((s) => ({ src: `icons/maskable-${s}x${s}.png`, sizes: `${s}x${s}`, type: 'image/png', purpose: 'maskable' })),
   );
 
-// [key, value, visibility, description]
+// [key, value, visibility, category, name, description]
+// category: shown group on Admin -> Settings (SETTING_CATEGORIES); 'texts' and 'admin_phones'
+// have their own screens and are not listed there.
 const SETTINGS = [
-  ['APP_NAME', 'Khata', 'public', 'App name in header, title and install prompt'],
-  ['APP_SHORT_NAME', 'Khata', 'public', 'Home-screen name'],
-  ['APP_DESCRIPTION', 'Shop khata, stock and vendor book', 'public', 'PWA description'],
-  ['APP_LOGO_URL', 'favicon.svg', 'public', 'Header logo path or URL'],
-  ['APP_ICONS', icons, 'public', 'PWA manifest icons'],
-  ['BRAND', { name: 'Spread Apps', url: 'https://spreadapps.in', logoUrl: 'brand/spreadapps-logo.svg' }, 'public', 'Footer credit'],
-  ['THEME_COLORS', theme, 'public', 'Light/dark palettes; each key becomes a --app-* CSS variable'],
-  ['UI_LABELS', labels, 'public', 'Every text on screen'],
-  ['TOAST_MESSAGES', toasts, 'public', 'Pop-up message texts'],
-  ['TOAST_DURATION_MS', 3500, 'public', 'How long pop-ups stay (ms)'],
-  ['LOCALE', 'en-IN', 'public', 'Number/date format'],
-  ['CURRENCY_CODE', 'INR', 'public', 'Currency for prices'],
-  ['DEFAULT_COUNTRY_CODE', '+91', 'public', 'Prefix for phone numbers'],
-  ['SUPPORT_WHATSAPP_NUMBER', '', 'public', 'WhatsApp support number with country code, e.g. 919876543210'],
+  // General
+  ['APP_NAME', 'Khata', 'public', 'general', 'App name', 'Name shown in the header, the browser tab and when the app is installed on a phone.'],
+  ['APP_SHORT_NAME', 'Khata', 'public', 'general', 'Short name', 'Name under the app icon on the phone home screen. Keep it short.'],
+  ['APP_DESCRIPTION', 'Shop khata, stock and vendor book', 'public', 'general', 'App description', 'One line about the app, shown when installing it.'],
+  ['SUPPORT_WHATSAPP_NUMBER', '', 'public', 'general', 'Support WhatsApp number', 'Customers tap "Chat on WhatsApp" in their profile to message this number. Include the country code, e.g. 919876543210. Leave empty to hide the button.'],
+  ['IS_TEST_MODE', true, 'authenticated', 'general', 'Test mode', 'While on, everything created is marked as test data. Turn it off before real customers start.'],
+  ['LOCALE', 'en-IN', 'public', 'general', 'Number & date format', 'How dates and amounts are written. en-IN shows 13/10/2026 and ₹1,00,000.'],
+  ['CURRENCY_CODE', 'INR', 'public', 'general', 'Currency', 'Currency for all prices, e.g. INR.'],
+  ['TIMEZONE', 'Asia/Kolkata', 'authenticated', 'general', 'Time zone', 'Used for the daily reminder time. Asia/Kolkata for India.'],
 
-  ['IS_TEST_MODE', true, 'authenticated', 'New rows are marked is_test while true'],
-  ['LOW_STOCK_DEFAULT_THRESHOLD', 5, 'authenticated', 'Low stock limit for products without their own'],
-  ['REMINDER_MESSAGES', { low_stock: '{product} stock takkuva undi: {qty} {unit} (limit {threshold}). Repu order cheyali.' }, 'authenticated', 'Placeholders: {product} {qty} {unit} {threshold}'],
-  ['ISSUE_TYPES', ['Login', 'Billing', 'Stock', 'Scanner', 'Other'], 'authenticated', 'Support ticket categories'],
-  ['TICKET_STATUSES', ['open', 'in_progress', 'resolved', 'closed'], 'authenticated', 'First one is the status of new tickets'],
-  ['PRICE_RULES', { tax_percent: 0, round_to: 1 }, 'authenticated', 'Applied to scanned bills'],
-  ['BILLS_BUCKET', 'bills', 'authenticated', 'Storage bucket for bill photos'],
-  ['BILL_IMAGE', { max_px: 1600, quality: 0.8 }, 'authenticated', 'Bill photo downscale before upload'],
-  ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'QR scanner camera settings'],
-  ['AVATARS_BUCKET', 'avatars', 'authenticated', 'Storage bucket for profile photos'],
-  ['AVATAR_IMAGE', { max_px: 512, quality: 0.85 }, 'authenticated', 'Profile photo downscale before upload'],
+  // Business
+  ['DEFAULT_PLAN_NAME', 'Free Trial', 'admin', 'business', 'Plan for new shops', 'New shops start on the pricing plan with exactly this name (see Pricing plans).'],
+  ['LOW_STOCK_DEFAULT_THRESHOLD', 5, 'authenticated', 'business', 'Default low-stock limit', 'A reminder is created when a product\'s quantity drops to this number, unless the product has its own limit.'],
+  ['STOCK_REMINDER_TIME', '09:00', 'admin', 'business', 'Daily reminder time', 'Every day at this time the app checks every shop\'s stock and creates low-stock reminders.'],
+  ['ISSUE_TYPES', ['Login', 'Billing', 'Stock', 'Scanner', 'Other'], 'authenticated', 'business', 'Support issue types', 'Choices customers pick from when raising a support ticket.'],
+  ['TICKET_STATUSES', ['open', 'in_progress', 'resolved', 'closed'], 'authenticated', 'business', 'Ticket statuses', 'Statuses you can set on support tickets. New tickets get the first one.'],
+  ['PRICE_RULES', { tax_percent: 0, round_to: 1 }, 'authenticated', 'business', 'Bill pricing rules', 'Applied when a bill is added: tax_percent is added to the total; round_to rounds the total (1 = nearest rupee).'],
 
-  ['ADMIN_PHONES', [], 'admin', 'Numbers that get ADMIN_ROLE_NAME (digits with country code)'],
-  ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'Role given to ADMIN_PHONES'],
-  ['DEFAULT_ROLE_NAME', 'shop_owner', 'admin', 'Role for everyone else'],
-  ['DEFAULT_PLAN_NAME', 'Free Trial', 'admin', 'Plan assigned to new shops'],
-  ['SMS_PROVIDER', { provider: 'log' }, 'admin', 'log = OTP in send-sms function logs; http = call a provider (see send-sms)'],
-  ['OTP_SMS_TEMPLATE', 'Your Khata login code is {otp}', 'admin', 'SMS text; {otp} is replaced'],
-  ['STOCK_REMINDER_CRON', '30 3 * * *', 'admin', 'Cron (UTC) for daily stock reminders; 30 3 * * * = 9:00 IST'],
-  ['MESSAGE_SETTINGS', ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'], 'admin', 'Maps shown in Texts & messages'],
-  ['SETTING_VISIBILITIES', ['public', 'authenticated', 'admin'], 'admin', 'Choices for a setting visibility'],
+  // Login
+  ['DEFAULT_COUNTRY_CODE', '+91', 'public', 'login', 'Country code', 'Shown before the mobile number on the login screen, e.g. +91.'],
+  ['OTP_SMS_TEMPLATE', 'Your Khata login code is {otp}', 'admin', 'login', 'OTP SMS text', 'Text of the login SMS. {otp} is replaced with the code.'],
+  ['SMS_PROVIDER', { provider: 'log' }, 'admin', 'login', 'SMS provider', 'How login codes are delivered. "log" = not sent, only visible in the Supabase send-sms logs (testing). Connect a real SMS provider before launch.'],
+  ['ADMIN_ROLE_NAME', 'super_admin', 'admin', 'login', 'Admin role', 'Role given to the numbers in Admin phones.'],
+  ['DEFAULT_ROLE_NAME', 'shop_owner', 'admin', 'login', 'Customer role', 'Role given to everyone else when they first log in.'],
+
+  // Appearance
+  ['THEME_COLORS', theme, 'public', 'appearance', 'Colours', 'App colours for light and dark mode.'],
+  ['APP_LOGO_URL', 'favicon.svg', 'public', 'appearance', 'Logo', 'Logo in the header: a file of the app or a web link to an image.'],
+  ['BRAND', { name: 'Spread Apps', url: 'https://spreadapps.in', logoUrl: 'brand/spreadapps-logo.svg' }, 'public', 'appearance', 'Powered-by credit', 'Company name, link and logo in the "Powered by" line.'],
+  ['TOAST_DURATION_MS', 3500, 'public', 'appearance', 'Pop-up duration (ms)', 'How long pop-up messages stay on screen, in milliseconds. 3500 = 3.5 seconds.'],
+
+  // Advanced (technical; change only if you know why)
+  ['APP_ICONS', icons, 'public', 'advanced', 'App icons', 'Icon files used when the app is installed.'],
+  ['BILLS_BUCKET', 'bills', 'authenticated', 'advanced', 'Bill photo storage', 'Storage bucket for bill photos.'],
+  ['AVATARS_BUCKET', 'avatars', 'authenticated', 'advanced', 'Profile photo storage', 'Storage bucket for profile photos.'],
+  ['BILL_IMAGE', { max_px: 1600, quality: 0.8 }, 'authenticated', 'advanced', 'Bill photo size', 'Bill photos are shrunk to max_px pixels and quality (0-1) before upload.'],
+  ['AVATAR_IMAGE', { max_px: 512, quality: 0.85 }, 'authenticated', 'advanced', 'Profile photo size', 'Profile photos are shrunk to max_px pixels and quality (0-1) before upload.'],
+  ['QR_SCANNER', { fps: 10, qrbox: 250 }, 'authenticated', 'advanced', 'QR scanner', 'Camera frames per second and scan box size for the bill QR scanner.'],
+  ['MESSAGE_SETTINGS', ['UI_LABELS', 'TOAST_MESSAGES', 'REMINDER_MESSAGES'], 'admin', 'advanced', 'Text groups', 'Which text groups appear in Texts & messages.'],
+  ['SETTING_VISIBILITIES', ['public', 'authenticated', 'admin'], 'admin', 'advanced', 'Visibility choices', 'Who a setting can be sent to.'],
+  ['SETTING_CATEGORIES', ['general', 'business', 'login', 'appearance', 'advanced'], 'admin', 'advanced', 'Settings groups', 'Groups on this page, in order. The last one starts collapsed.'],
+
+  // Edited on their own screens
+  ['UI_LABELS', labels, 'public', 'texts', 'Screen labels', 'Every text on screen. Edit in Texts & messages.'],
+  ['TOAST_MESSAGES', toasts, 'public', 'texts', 'Pop-up messages', 'Pop-up message texts. Edit in Texts & messages.'],
+  ['REMINDER_MESSAGES', { low_stock: '{product} stock takkuva undi: {qty} {unit} (limit {threshold}). Repu order cheyali.' }, 'authenticated', 'texts', 'Reminder texts', 'Placeholders: {product} {qty} {unit} {threshold}. Edit in Texts & messages.'],
+  ['ADMIN_PHONES', [], 'admin', 'admin_phones', 'Admin phones', 'Numbers that get the admin role. Edit in Admin phones.'],
 ];
+
+for (const [key, , , , name] of SETTINGS) labels[`settingName.${key}`] = name;
 
 const all = {
   can_access_admin: true,
@@ -319,8 +397,8 @@ const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const j = (v) => `${q(JSON.stringify(v))}::jsonb`;
 
 const sql = [
-  '-- Generated by scripts/settings.seed.mjs. Initial data only: "on conflict do nothing",',
-  '-- so values admins change later are never overwritten.',
+  '-- Generated by scripts/settings.seed.mjs. Values are inserted only when missing',
+  '-- ("on conflict do nothing"), so values admins changed are never overwritten.',
   '',
   ...ROLES.map(
     ([n, d, p]) =>
@@ -333,8 +411,13 @@ const sql = [
   ),
   '',
   ...SETTINGS.map(
-    ([k, v, vis, d]) =>
-      `insert into public.app_settings (key, value, visibility, description) values (${q(k)}, ${j(v)}, ${q(vis)}, ${q(d)}) on conflict (key) do nothing;`,
+    ([k, v, vis, cat, , d]) =>
+      `insert into public.app_settings (key, value, visibility, category, description) values (${q(k)}, ${j(v)}, ${q(vis)}, ${q(cat)}, ${q(d)}) on conflict (key) do nothing;`,
+  ),
+  '',
+  '-- Descriptions and groups belong to the app, so they are always refreshed.',
+  ...SETTINGS.map(
+    ([k, , , cat, , d]) => `update public.app_settings set category = ${q(cat)}, description = ${q(d)} where key = ${q(k)};`,
   ),
   '',
   '-- Text maps: add keys that are new in code; texts admins already edited win.',
