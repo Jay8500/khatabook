@@ -27,3 +27,11 @@
     @apply bg-background text-text min-h-dvh antialiased;
   }
 }
+
+/* Horizontal chip/nav strips scroll by swipe; no visible scrollbar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

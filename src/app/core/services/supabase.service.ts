@@ -2,6 +2,7 @@ import { Injectable, Injector, inject } from '@angular/core';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 import { EncryptedEnvelope } from '../types/app-settings';
+import { RpcError } from '../types/models';
 import { EncryptionService } from './encryption.service';
 
 @Injectable({ providedIn: 'root' })
@@ -36,10 +37,12 @@ export class SupabaseService {
     const encryption = this.injector.get(EncryptionService);
     const envelope = await encryption.encrypt({ rpc, params });
     const response = await this.invoke<EncryptedEnvelope>('encrypt-rpc', envelope);
-    return encryption.decrypt<T>(response);
+    const result = await encryption.decrypt<{ data?: T; error?: RpcError }>(response);
+    if (result.error) throw result.error;
+    return result.data as T;
   }
 
-  private requireClient(): SupabaseClient {
+  requireClient(): SupabaseClient {
     if (!this.client) throw new Error('Supabase is not configured in environment.ts');
     return this.client;
   }

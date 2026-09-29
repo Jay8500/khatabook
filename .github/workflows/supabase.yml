@@ -33,4 +33,4 @@ jobs:
         run: supabase db push
       - name: Deploy edge functions
         if: env.PROJECT_REF != ''
-        run: supabase functions deploy --project-ref "$PROJECT_REF"
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api

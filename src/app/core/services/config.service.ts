@@ -23,7 +23,9 @@ export class ConfigService {
   async load(): Promise<void> {
     if (this.supabase.isConfigured) {
       try {
-        this._settings.set(await this.supabase.invoke<AppSettings>('config-loader'));
+        const remote = await this.supabase.invoke<AppSettings>('config-loader');
+        if (Object.keys(remote).length === 0) throw new Error('app_settings is empty');
+        this._settings.set(remote);
         this._source.set('remote');
         return;
       } catch (err) {
@@ -43,8 +45,27 @@ export class ConfigService {
     return this.get<Record<string, string>>(settingKey)?.[messageKey] ?? messageKey;
   }
 
-  label(key: string): string {
-    return this.message('UI_LABELS', key);
+  label(key: string, vars?: Record<string, unknown>): string {
+    return format(this.message('UI_LABELS', key), vars);
+  }
+
+  /** Values of a jsonb array setting (ISSUE_TYPES, TICKET_STATUSES, ...). */
+  list(key: string): string[] {
+    const value = this.get<unknown>(key);
+    return Array.isArray(value) ? value.map(String) : [];
+  }
+
+  /** Formats a number/date with LOCALE and CURRENCY settings. */
+  money(value: unknown): string {
+    const currency = this.get<string>('CURRENCY_CODE');
+    const n = Number(value ?? 0);
+    return currency
+      ? n.toLocaleString(this.get<string>('LOCALE'), { style: 'currency', currency })
+      : n.toLocaleString(this.get<string>('LOCALE'));
+  }
+
+  date(value: unknown): string {
+    return value ? new Date(String(value)).toLocaleDateString(this.get<string>('LOCALE')) : '';
   }
 
   private async loadBootstrap(): Promise<AppSettings> {
@@ -55,4 +76,12 @@ export class ConfigService {
       return {};
     }
   }
+}
+
+/** Replaces {name} placeholders in a settings text. */
+export function format(text: string, vars?: Record<string, unknown>): string {
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (match, name: string) =>
+    vars[name] === undefined || vars[name] === null ? match : String(vars[name]),
+  );
 }

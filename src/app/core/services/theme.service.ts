@@ -10,7 +10,7 @@ import { ConfigService } from './config.service';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly config = inject(ConfigService);
-  // Phase 2: initial mode is read from users_profile.preferences instead of the OS setting.
+  // OS setting until the signed-in user's users_profile.preferences.theme is known.
   private readonly _mode = signal<ThemeMode>(
     window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   );
@@ -20,9 +20,14 @@ export class ThemeService {
     effect(() => this.apply(this._mode()));
   }
 
-  toggle(): void {
+  /** Flips the mode and returns the new one (AuthService persists it to the profile). */
+  toggle(): ThemeMode {
     this._mode.update((m) => (m === 'dark' ? 'light' : 'dark'));
-    // Phase 2: persist to users_profile.preferences via SupabaseService.callSecureRpc.
+    return this._mode();
+  }
+
+  setMode(mode: unknown): void {
+    if (mode === 'light' || mode === 'dark') this._mode.set(mode);
   }
 
   apply(mode: ThemeMode = this._mode()): void {

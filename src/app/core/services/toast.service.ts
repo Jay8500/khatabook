@@ -26,6 +26,14 @@ export class ToastService {
     if (duration) setTimeout(() => this.dismiss(toast.id), duration);
   }
 
+  /** Uses the error's message as a TOAST_MESSAGES key when one exists, else the generic 'error'. */
+  error(err: unknown): void {
+    const message = (err as { message?: string } | null)?.message;
+    const known = message && this.config.get<Record<string, string>>('TOAST_MESSAGES')?.[message];
+    console.error(err);
+    this.show(known ? message : 'error', 'error');
+  }
+
   dismiss(id: number): void {
     this._toasts.update((list) => list.filter((t) => t.id !== id));
   }

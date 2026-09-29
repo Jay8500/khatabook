@@ -14,7 +14,8 @@
     "supabase:link": "supabase link",
     "supabase:push": "supabase db push",
     "supabase:functions": "supabase functions deploy",
-    "supabase:types": "supabase gen types typescript --linked --schema public > src/app/core/types/supabase.ts"
+    "supabase:types": "supabase gen types typescript --linked --schema public > src/app/core/types/supabase.ts",
+    "seed:settings": "node scripts/settings.seed.mjs"
   },
   "private": true,
   "packageManager": "npm@12.0.1",
@@ -27,6 +28,7 @@
     "@angular/router": "^22.2.0",
     "@angular/service-worker": "^22.2.0",
     "@supabase/supabase-js": "^2.117.2",
+    "html5-qrcode": "^2.3.8",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

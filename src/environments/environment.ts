@@ -2,6 +2,6 @@
 // app_settings table through ConfigService.
 export const environment = {
   production: true,
-  supabaseUrl: '',
-  supabaseAnonKey: '',
+  supabaseUrl: 'https://umuczmwlfukgwheadrki.supabase.co',
+  supabaseAnonKey: 'sb_publishable_t1Divf8g02hM7wXDVWsNZw_bjdhwDKh',
 };
