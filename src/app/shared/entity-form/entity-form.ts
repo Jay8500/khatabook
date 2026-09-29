@@ -5,7 +5,8 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ImageRules, checkImage, compressImage } from '../image';
 import { Row } from '../../core/types/models';
-import { FieldDef, OptionMap } from '../entity';
+import { FieldDef, Option, OptionMap } from '../entity';
+import { CrudService } from '../../core/services/crud.service';
 
 type Draft = Record<string, string | boolean>;
 
@@ -46,10 +47,24 @@ type Draft = Record<string, string | boolean>;
                     (change)="set(field.key, $any($event.target).value)"
                   >
                     <option value=""></option>
-                    @for (opt of options()[field.key] ?? []; track opt.value) {
+                    @for (opt of optionsFor(field); track opt.value) {
                       <option [value]="opt.value" [selected]="opt.value === draft()[field.key]">{{ opt.label }}</option>
                     }
                   </select>
+                  @if (field.addOption) {
+                    <div class="mt-1.5 flex gap-2">
+                      <input
+                        class="min-w-0 flex-1 rounded-lg border border-dashed border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
+                        [placeholder]="config.label('form.addOptionPlaceholder')"
+                        [value]="newOption()[field.key] ?? ''"
+                        (input)="setNewOption(field.key, $any($event.target).value)"
+                        (keydown.enter)="$event.preventDefault(); addOption(field)"
+                      />
+                      <button type="button" class="shrink-0 rounded-lg border border-border px-3 text-sm font-medium text-primary disabled:opacity-40" [disabled]="!(newOption()[field.key] ?? '').trim()" (click)="addOption(field)">
+                        + {{ config.label('common.add') }}
+                      </button>
+                    </div>
+                  }
                 }
                 @case ('textarea') {
                   <textarea rows="3" [class]="inputClass" [value]="draft()[field.key]" (input)="set(field.key, $any($event.target).value)"></textarea>
@@ -114,6 +129,7 @@ export class EntityForm {
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
   private readonly supabase = inject(SupabaseService);
+  private readonly crud = inject(CrudService);
 
   readonly fields = input.required<FieldDef[]>();
   readonly labelPrefix = input.required<string>();
@@ -151,6 +167,35 @@ export class EntityForm {
   }
 
   protected readonly uploading = signal('');
+  /** Choices added in this form (shown right away, before options reload). */
+  private readonly added = signal<Record<string, Option[]>>({});
+  protected readonly newOption = signal<Record<string, string>>({});
+
+  /** Loaded options + ones added here + the row's current value if it is not in the list. */
+  protected optionsFor(field: FieldDef): Option[] {
+    const list = [...(this.options()[field.key] ?? []), ...(this.added()[field.key] ?? [])];
+    const current = String(this.draft()[field.key] ?? '');
+    if (current && !list.some((o) => o.value === current)) list.push({ value: current, label: current });
+    return list;
+  }
+
+  protected setNewOption(key: string, value: string): void {
+    this.newOption.update((m) => ({ ...m, [key]: value }));
+  }
+
+  protected async addOption(field: FieldDef): Promise<void> {
+    const value = (this.newOption()[field.key] ?? '').trim();
+    if (!value || !field.addOption) return;
+    try {
+      await field.addOption({ crud: this.crud, config: this.config, auth: this.auth }, value);
+      this.added.update((m) => ({ ...m, [field.key]: [...(m[field.key] ?? []), { value, label: value }] }));
+      this.set(field.key, value);
+      this.setNewOption(field.key, '');
+      this.toast.show('optionAdded', 'success', { value });
+    } catch (err) {
+      this.toast.error(err);
+    }
+  }
 
   protected acceptFor(field: FieldDef): string {
     const rules = field.image ? this.config.get<ImageRules>(field.image.rulesSetting) : undefined;

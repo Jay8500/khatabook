@@ -5,6 +5,7 @@ import { CrudService } from '../../core/services/crud.service';
 import { whatsappLink } from '../../core/services/orders.service';
 import { ToastService } from '../../core/services/toast.service';
 import { PaymentMode } from '../../core/types/store';
+import { qrDataUrl } from '../../shared/qr';
 
 interface StoreForm {
   name: string;
@@ -41,10 +42,13 @@ interface StoreForm {
           <button type="button" class="rounded-xl border border-border px-3 py-2.5 text-sm font-medium" (click)="copy()">{{ config.label('myStore.copy') }}</button>
           <a [href]="shareWhatsapp()" target="_blank" rel="noopener" class="rounded-xl bg-success px-3 py-2.5 text-center text-sm font-semibold text-white">{{ config.label('myStore.shareWhatsapp') }}</a>
         </div>
-        @if (qr()) {
+        @if (poster()) {
           <div class="mt-4 text-center">
-            <img [src]="qr()" alt="" class="mx-auto size-48 rounded-xl border border-border bg-white p-2" />
-            <a [href]="qr()" [attr.download]="s['slug'] + '-qr.png'" class="mt-2 inline-block text-sm font-medium text-primary">{{ config.label('myStore.downloadQr') }}</a>
+            <img [src]="poster()" alt="" class="mx-auto w-56 rounded-2xl border border-border shadow-sm" />
+            <div class="mx-auto mt-3 grid max-w-xs grid-cols-2 gap-2">
+              <button type="button" class="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-on-primary" (click)="shareQr()">{{ config.label('myStore.shareQr') }}</button>
+              <a [href]="poster()" [attr.download]="s['slug'] + '-qr.png'" class="rounded-xl border border-border px-3 py-2.5 text-sm font-medium">{{ config.label('myStore.downloadQr') }}</a>
+            </div>
           </div>
         }
       </section>
@@ -116,7 +120,7 @@ export class MyStore {
   protected readonly shop = computed(() => this.auth.shop() as unknown as Record<string, unknown> | null);
   protected readonly form = signal<StoreForm>(this.toForm());
   protected readonly busy = signal(false);
-  protected readonly qr = signal<string | null>(null);
+  protected readonly poster = signal<string | null>(null);
 
   protected readonly link = computed(() => `${location.origin}/s/${this.shop()?.['slug'] ?? ''}`);
   protected readonly shareWhatsapp = computed(() => {
@@ -159,10 +163,71 @@ export class MyStore {
     this.form.update((f) => ({ ...f, [key]: value }));
   }
 
+  /** Printable / shareable card: shop name, QR, "Scan to order", shop code. Colours from THEME_COLORS. */
   private async makeQr(): Promise<void> {
-    if (!this.shop()) return;
-    const { toDataURL } = await import('qrcode');
-    this.qr.set(await toDataURL(this.link(), { margin: 1, width: 360 }));
+    const shop = this.shop();
+    if (!shop) return;
+    const qr = new Image();
+    qr.src = await qrDataUrl(this.link(), 720);
+    await qr.decode();
+
+    const colors = this.config.get<{ light: Record<string, string> }>('THEME_COLORS')?.light ?? {};
+    const primary = colors['primary'] ?? '#000';
+    const onPrimary = colors['onPrimary'] ?? '#fff';
+    const text = colors['text'] ?? '#000';
+    const muted = colors['muted'] ?? '#666';
+
+    const c = document.createElement('canvas');
+    c.width = 1080;
+    c.height = 1400;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = primary;
+    g.fillRect(0, 0, c.width, 260);
+    g.textAlign = 'center';
+    g.fillStyle = onPrimary;
+    g.font = 'bold 72px system-ui, sans-serif';
+    g.fillText(String(shop['name'] ?? ''), c.width / 2, 150, c.width - 80);
+    g.font = '36px system-ui, sans-serif';
+    g.fillText(this.config.label('myStore.qrTagline'), c.width / 2, 215, c.width - 80);
+    g.drawImage(qr, 180, 320, 720, 720);
+    g.fillStyle = text;
+    g.font = 'bold 56px system-ui, sans-serif';
+    g.fillText(this.config.label('myStore.qrTitle'), c.width / 2, 1130);
+    g.fillStyle = muted;
+    g.font = '40px system-ui, sans-serif';
+    g.fillText(this.config.label('myStore.qrCode', { code: shop['join_code'] }), c.width / 2, 1200);
+    g.font = '30px system-ui, sans-serif';
+    g.fillText(this.link().replace(/^https?:\/\//, ''), c.width / 2, 1260, c.width - 80);
+    const brand = this.config.brand();
+    if (brand) g.fillText(`${this.config.label('footer.poweredBy')} ${brand.name}`, c.width / 2, 1350);
+    this.poster.set(c.toDataURL('image/png'));
+  }
+
+  /** Phone share sheet with the card image (WhatsApp, Instagram…); download elsewhere. */
+  protected async shareQr(): Promise<void> {
+    const url = this.poster();
+    if (!url) return;
+    const blob = await (await fetch(url)).blob();
+    const file = new File([blob], `${this.shop()?.['slug']}-qr.png`, { type: 'image/png' });
+    const text = format(this.config.label('myStore.shareText'), {
+      shop: this.shop()?.['name'],
+      link: this.link(),
+      code: this.shop()?.['join_code'],
+    });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text });
+      } catch {
+        // Share sheet closed.
+      }
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    a.click();
   }
 
   protected async copy(): Promise<void> {

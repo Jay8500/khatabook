@@ -35,6 +35,8 @@ export interface FieldDef {
   grid?: boolean;
   form?: boolean;
   options?: (ctx: OptionContext) => Promise<Option[]> | Option[];
+  /** select: lets the user add a new choice (e.g. a shop's own unit); saves it and returns. */
+  addOption?: (ctx: OptionContext, value: string) => Promise<void>;
   /** Value for new rows (e.g. a checkbox that starts ticked). */
   default?: unknown;
   /** type 'image': app_settings keys of the storage bucket and the image rules. */

@@ -16,6 +16,21 @@ const fromSetting =
   ({ config }: OptionContext): Option[] =>
     config.list(key).map((v) => ({ value: v, label: v }));
 
+/** App-wide UNITS setting plus the shop's own units. */
+const unitOptions = ({ config, auth }: OptionContext): Option[] => {
+  const own = ((auth.shop() as unknown as { custom_units?: string[] } | null)?.custom_units ?? []).map(String);
+  return [...new Set([...config.list('UNITS'), ...own])].map((u) => ({ value: u, label: u }));
+};
+
+/** Adds a unit to the shop's own list (shops.custom_units). */
+const addShopUnit = async ({ crud, auth }: OptionContext, unit: string): Promise<void> => {
+  const shop = auth.shop() as unknown as { id: string; custom_units?: string[] } | null;
+  if (!shop) return;
+  const units = [...new Set([...(shop.custom_units ?? []), unit])];
+  await crud.update('shops', shop.id, { custom_units: units });
+  await auth.loadContext();
+};
+
 export const ENTITIES: Record<string, EntityConfig> = {
   // ---- Shop -----------------------------------------------------------------
   stocks: {
@@ -27,7 +42,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { key: 'image_url', type: 'image', grid: false, image: { bucketSetting: 'PRODUCTS_BUCKET', rulesSetting: 'PRODUCT_IMAGE' } },
       { key: 'product_name', required: true },
       { key: 'qty', type: 'number', required: true },
-      { key: 'unit' },
+      { key: 'unit', type: 'select', options: unitOptions, addOption: addShopUnit },
       { key: 'price', type: 'money' },
       { key: 'category' },
       { key: 'show_in_store', type: 'boolean', default: true },

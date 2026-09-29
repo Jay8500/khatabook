@@ -5,6 +5,7 @@ import { NEXT_STATUS, OrdersService, upiLink, whatsappLink } from '../../core/se
 import { ToastService } from '../../core/services/toast.service';
 import { OrderDetail as Detail, OrderStatus, PaymentMode } from '../../core/types/store';
 import { QtyStepper } from '../../shared/qty-stepper/qty-stepper';
+import { qrDataUrl } from '../../shared/qr';
 
 const FLOW: OrderStatus[] = ['requested', 'accepted', 'packed', 'ready', 'completed'];
 
@@ -349,8 +350,7 @@ export class OrderDetailPage {
       this.qr.set(null);
       return;
     }
-    const { toDataURL } = await import('qrcode');
-    this.qr.set(await toDataURL(link, { margin: 1, width: 240 }));
+    this.qr.set(await qrDataUrl(link, 240));
   }
 
   private async run(action: () => Promise<void>, toastKey: string): Promise<void> {
