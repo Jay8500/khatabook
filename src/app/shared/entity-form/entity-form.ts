@@ -5,7 +5,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ImageRules, checkImage, compressImage } from '../image';
 import { Row } from '../../core/types/models';
-import { FieldDef, Option, OptionMap } from '../entity';
+import { FieldDef, Option, OptionMap, permissionLabel } from '../entity';
 import { CrudService } from '../../core/services/crud.service';
 
 type Draft = Record<string, string | boolean>;
@@ -24,6 +24,53 @@ type Draft = Record<string, string | boolean>;
 
         <div class="grid gap-4">
           @for (field of formFields(); track field.key) {
+            @if (field.type === 'permissions') {
+              <div class="grid gap-1.5 text-sm">
+                <span class="font-medium">{{ config.label(labelPrefix() + '.' + field.key) }}</span>
+                <ul class="divide-y divide-border rounded-xl border border-border bg-background">
+                  @for (key of permissionKeys(field); track key) {
+                    <li>
+                      <label class="flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5">
+                        <span class="min-w-0">
+                          <span class="block font-medium">{{ permLabel(key) }}</span>
+                          @if (config.hasLabel('perm.' + key + '.hint')) {
+                            <span class="block text-xs text-muted">{{ config.label('perm.' + key + '.hint') }}</span>
+                          }
+                        </span>
+                        <input type="checkbox" class="peer sr-only" [checked]="permissionOn(field, key)" (change)="togglePermission(field, key, $any($event.target).checked)" />
+                        <span class="relative h-6 w-11 shrink-0 rounded-full bg-border transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-5 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40"></span>
+                      </label>
+                    </li>
+                  }
+                </ul>
+              </div>
+            } @else if (field.type === 'list') {
+              <div class="grid gap-1.5 text-sm">
+                <span class="font-medium">{{ config.label(labelPrefix() + '.' + field.key) }}</span>
+                @if (listItems(field).length) {
+                  <ul class="flex flex-wrap gap-1.5">
+                    @for (item of listItems(field); track $index) {
+                      <li class="flex items-center gap-1 rounded-full bg-primary/10 py-1 pr-1 pl-3 text-primary">
+                        {{ item }}
+                        <button type="button" class="grid size-5 place-items-center rounded-full hover:bg-primary/20" [attr.aria-label]="config.label('common.delete')" (click)="removeListItem(field, $index)">×</button>
+                      </li>
+                    }
+                  </ul>
+                }
+                <div class="flex gap-2">
+                  <input
+                    class="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 outline-none focus:border-primary"
+                    [placeholder]="config.label('form.addItemPlaceholder')"
+                    [value]="newOption()[field.key] ?? ''"
+                    (input)="setNewOption(field.key, $any($event.target).value)"
+                    (keydown.enter)="$event.preventDefault(); addListItem(field)"
+                  />
+                  <button type="button" class="shrink-0 rounded-xl border border-border px-3 font-medium text-primary disabled:opacity-40" [disabled]="!(newOption()[field.key] ?? '').trim()" (click)="addListItem(field)">
+                    + {{ config.label('common.add') }}
+                  </button>
+                </div>
+              </div>
+            } @else {
             <label class="grid gap-1.5 text-sm">
               <span class="font-medium">
                 {{ config.label(labelPrefix() + '.' + field.key) }}
@@ -109,6 +156,7 @@ type Draft = Record<string, string | boolean>;
                 }
               }
             </label>
+            }
           }
         </div>
 
@@ -160,6 +208,8 @@ export class EntityForm {
         const v = current ? row[field.key] : field.default;
         if (field.type === 'boolean') draft[field.key] = v === true;
         else if (field.type === 'json') draft[field.key] = v === undefined ? '' : JSON.stringify(v, null, 2);
+        else if (field.type === 'permissions') draft[field.key] = JSON.stringify(v ?? {});
+        else if (field.type === 'list') draft[field.key] = JSON.stringify(Array.isArray(v) ? v : []);
         else draft[field.key] = v === null || v === undefined ? '' : String(v);
       }
       this.draft.set(draft);
@@ -233,6 +283,55 @@ export class EntityForm {
     }
   }
 
+  // --- permissions: {key: true} object kept as JSON text in the draft --------
+  private parsed<T>(field: FieldDef, fallback: T): T {
+    try {
+      return (JSON.parse(String(this.draft()[field.key] || 'null')) as T) ?? fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /** PERMISSIONS setting order, plus any extra key already on the row. */
+  protected permissionKeys(field: FieldDef): string[] {
+    const known = this.config.get<string[]>('PERMISSIONS') ?? [];
+    const extra = Object.keys(this.parsed<Record<string, unknown>>(field, {})).filter((k) => !known.includes(k));
+    return [...known, ...extra];
+  }
+
+  protected permLabel(key: string): string {
+    return permissionLabel(this.config, key);
+  }
+
+  protected permissionOn(field: FieldDef, key: string): boolean {
+    return this.parsed<Record<string, unknown>>(field, {})[key] === true;
+  }
+
+  /** Off removes the key, so saved roles look the same as before. */
+  protected togglePermission(field: FieldDef, key: string, on: boolean): void {
+    const perms = { ...this.parsed<Record<string, unknown>>(field, {}) };
+    if (on) perms[key] = true;
+    else delete perms[key];
+    this.set(field.key, JSON.stringify(perms));
+  }
+
+  // --- list: array of texts kept as JSON text in the draft --------------------
+  protected listItems(field: FieldDef): string[] {
+    const list = this.parsed<unknown[]>(field, []);
+    return Array.isArray(list) ? list.map(String) : [];
+  }
+
+  protected addListItem(field: FieldDef): void {
+    const value = (this.newOption()[field.key] ?? '').trim();
+    if (!value) return;
+    this.set(field.key, JSON.stringify([...this.listItems(field), value]));
+    this.setNewOption(field.key, '');
+  }
+
+  protected removeListItem(field: FieldDef, index: number): void {
+    this.set(field.key, JSON.stringify(this.listItems(field).filter((_, i) => i !== index)));
+  }
+
   protected set(key: string, value: string | boolean): void {
     this.draft.update((d) => ({ ...d, [key]: value }));
   }
@@ -257,7 +356,7 @@ export class EntityForm {
       }
       if (field.type === 'number' || field.type === 'money') {
         row[field.key] = Number(text);
-      } else if (field.type === 'json') {
+      } else if (field.type === 'json' || field.type === 'permissions' || field.type === 'list') {
         try {
           row[field.key] = JSON.parse(text);
         } catch {

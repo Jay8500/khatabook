@@ -131,13 +131,13 @@ const STATUS_DOT: Record<Status, string> = {
           @for (r of requests(); track r.id) {
             <li class="rounded-xl border border-border bg-surface p-3 text-sm">
               <p class="font-semibold">{{ r.shop }}</p>
-              <p class="text-xs text-muted">{{ r.owner_name }} · {{ phone(r.owner_phone) }} · {{ config.date(r.created_at) }}</p>
+              <p class="text-xs text-muted">{{ r.owner_name }} · {{ phone(r.owner_phone) }} · {{ day(r.created_at) }}</p>
               @if (r.reason) {
                 <p class="mt-2 rounded-lg bg-background px-3 py-2">“{{ r.reason }}”</p>
               }
               <p class="mt-2 text-xs">
                 {{ config.label('dash.openOrders', { count: r.open_orders }) }} · {{ config.label('dash.col.paid') }} {{ config.money(r.paid_total) }}
-                @if (r.valid_till) { · {{ config.label('dash.validTill', { date: config.date(r.valid_till) }) }} }
+                @if (r.valid_till) { · {{ config.label('dash.validTill', { date: day(r.valid_till) }) }} }
               </p>
               <input
                 [class]="inputClass + ' mt-2 text-sm'"
@@ -280,17 +280,31 @@ const STATUS_DOT: Record<Status, string> = {
                 <div><dt class="text-muted">{{ config.label('dash.col.sales') }}</dt><dd class="font-semibold tabular-nums">{{ config.money(s.sales) }}</dd></div>
                 <div><dt class="text-muted">{{ config.label('dash.col.paid') }}</dt><dd class="font-semibold tabular-nums">{{ config.money(s.paid_total) }}</dd></div>
               </dl>
-              <p class="mt-2 text-xs text-muted">
-                @if (s.plan) {
-                  <span class="mr-1 rounded-full px-2 py-0.5 font-semibold" [class]="+(s.plan_price ?? 0) > 0 ? 'bg-primary/10 text-primary' : 'bg-info/15 text-info'">
-                    {{ config.label(+(s.plan_price ?? 0) > 0 ? 'dash.planFilter.paid' : 'dash.planFilter.trial') }}
-                  </span>
-                }
-                {{ s.plan || config.label('dash.noPlan') }}
-                @if (s.subscription_expires_at) { · {{ config.label('dash.validTill', { date: config.date(s.subscription_expires_at) }) }} }
-                @if (s.last_order_at) { · {{ config.label('dash.lastOrder', { date: config.date(s.last_order_at) }) }} }
-                @if (s.closed_at) { · {{ config.label('dash.closedOn', { date: config.date(s.closed_at) }) }} }
-              </p>
+              <dl class="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-xl bg-background px-3 py-2.5 text-xs">
+                <div class="flex min-w-0 items-center justify-between gap-2">
+                  <dt class="text-muted">{{ config.label('dash.meta.plan') }}</dt>
+                  <dd class="flex min-w-0 items-center gap-1 font-medium">
+                    @if (s.plan) {
+                      <span class="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold" [class]="+(s.plan_price ?? 0) > 0 ? 'bg-primary/10 text-primary' : 'bg-info/15 text-info'">
+                        {{ config.label(+(s.plan_price ?? 0) > 0 ? 'dash.planFilter.paid' : 'dash.planFilter.trial') }}
+                      </span>
+                    }
+                    <span class="truncate">{{ s.plan || config.label('dash.noPlan') }}</span>
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-muted">{{ config.label('dash.meta.validTill') }}</dt>
+                  <dd class="font-medium tabular-nums" [class.text-error]="st === 'expired'">{{ day(s.subscription_expires_at) }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-muted">{{ config.label('dash.meta.lastOrder') }}</dt>
+                  <dd class="font-medium tabular-nums">{{ day(s.last_order_at) }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-muted">{{ config.label(s.closed_at ? 'dash.meta.closed' : 'dash.meta.joined') }}</dt>
+                  <dd class="font-medium tabular-nums">{{ day(s.closed_at ?? s.created_at) }}</dd>
+                </div>
+              </dl>
               @if (s.payments_list.length) {
                 <button type="button" class="mt-2 text-xs font-medium text-primary" (click)="toggleHistory(s.id)">
                   {{ config.label(openHistory() === s.id ? 'dash.hidePayments' : 'dash.showPayments', { count: s.payments_list.length }) }}
@@ -300,8 +314,8 @@ const STATUS_DOT: Record<Status, string> = {
                     @for (p of s.payments_list; track $index) {
                       <li class="flex justify-between gap-2">
                         <span class="min-w-0 truncate">
-                          {{ config.date(p.paid_at) }} · {{ p.plan }}
-                          @if (p.valid_until) { → {{ config.date(p.valid_until) }} }
+                          {{ day(p.paid_at) }} · {{ p.plan }}
+                          @if (p.valid_until) { → {{ day(p.valid_until) }} }
                           @if (p.note) { · {{ p.note }} }
                         </span>
                         <b class="shrink-0 tabular-nums">{{ config.money(p.amount) }}</b>
@@ -311,10 +325,10 @@ const STATUS_DOT: Record<Status, string> = {
                 }
               }
               <div class="mt-3 grid gap-2 border-t border-border pt-3 text-sm" [class]="s.state === 'closed' ? 'grid-cols-2' : 'grid-cols-3'">
-                <button type="button" class="rounded-xl bg-primary px-2 py-2 font-semibold text-on-primary" (click)="openPayment(s)">{{ config.label('dash.recordPayment') }}</button>
-                <a [href]="'/s/' + s.slug" target="_blank" rel="noopener" class="rounded-xl border border-border px-2 py-2 text-center font-medium">{{ config.label('dash.openStore') }}</a>
+                <button type="button" class="flex items-center justify-center rounded-xl bg-primary px-2 py-2 text-center leading-tight font-semibold text-on-primary" (click)="openPayment(s)">{{ config.label('dash.recordPayment') }}</button>
+                <a [href]="'/s/' + s.slug" target="_blank" rel="noopener" class="flex items-center justify-center rounded-xl border border-border px-2 py-2 text-center leading-tight font-medium">{{ config.label('dash.openStore') }}</a>
                 @if (s.state !== 'closed') {
-                  <button type="button" class="rounded-xl border px-2 py-2 font-medium" [class]="s.is_active ? 'border-error/40 text-error' : 'border-success/40 text-success'" (click)="toggleActive(s)">
+                  <button type="button" class="flex items-center justify-center rounded-xl border px-2 py-2 text-center leading-tight font-medium" [class]="s.is_active ? 'border-error/40 text-error' : 'border-success/40 text-success'" (click)="toggleActive(s)">
                     {{ config.label(s.is_active ? 'dash.deactivate' : 'dash.activate') }}
                   </button>
                 }
@@ -530,6 +544,11 @@ export class AdminDashboard {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  /** Same short date everywhere on the card; a dash when empty. */
+  protected day(iso: string | null): string {
+    return iso ? new Date(iso).toLocaleDateString(this.config.get<string>('LOCALE'), { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   }
 
   protected phone(p: string | null): string {

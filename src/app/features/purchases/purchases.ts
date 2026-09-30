@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
 import type { Html5Qrcode } from 'html5-qrcode';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
@@ -135,7 +135,10 @@ const FIELDS: FieldDef[] = [
     }
   `,
 })
-export class Purchases implements OnDestroy {
+export class Purchases implements OnInit, OnDestroy {
+  /** ?add=1 opens a new bill straight away (quick actions on Home). */
+  readonly add = input<string | undefined>(undefined);
+
   protected readonly config = inject(ConfigService);
   private readonly auth = inject(AuthService);
   private readonly crud = inject(CrudService);
@@ -175,6 +178,10 @@ export class Purchases implements OnDestroy {
 
   constructor() {
     void this.load();
+  }
+
+  ngOnInit(): void {
+    if (this.add()) this.openScan();
   }
 
   ngOnDestroy(): void {

@@ -78,6 +78,9 @@ export class CrudPage {
 
   /** Bound from route data. */
   readonly entity = input.required<string>();
+  /** ?add=1 opens the add form straight away (quick actions on Home). */
+  readonly add = input<string | undefined>(undefined);
+  private addOpened = false;
 
   protected readonly def = computed<EntityConfig | undefined>(() => ENTITIES[this.entity()]);
   protected readonly rows = signal<Row[]>([]);
@@ -119,6 +122,10 @@ export class CrudPage {
       });
       this.options.set(options);
       this.rows.set(rows);
+      if (this.add() && !this.addOpened && def.create !== false) {
+        this.addOpened = true;
+        this.open(null);
+      }
     } catch (err) {
       this.toast.error(err);
     } finally {

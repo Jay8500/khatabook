@@ -1,60 +1,122 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { ConfigService } from '../../core/services/config.service';
+import { ConfigService, format } from '../../core/services/config.service';
 import { CrudService } from '../../core/services/crud.service';
+import { whatsappLink } from '../../core/services/orders.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Row } from '../../core/types/models';
+import { Order, OrderStatus } from '../../core/types/store';
+import { Icon } from '../../shared/icon/icon';
+import { OrderCard } from '../orders/order-card';
 
+/** Order pipeline tiles; each opens that tab in Orders. */
+const PIPELINE: { key: string; status: OrderStatus; tab: string }[] = [
+  { key: 'new', status: 'requested', tab: 'new' },
+  { key: 'accepted', status: 'accepted', tab: 'accepted' },
+  { key: 'packed', status: 'packed', tab: 'packed' },
+  { key: 'ready', status: 'ready', tab: 'ready' },
+];
+const OPEN: OrderStatus[] = PIPELINE.map((p) => p.status);
+
+/** Shop owner's home: today's work on one screen, every common task one tap away. */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
+  imports: [Icon, OrderCard, RouterLink],
   template: `
-    <section class="rounded-2xl bg-primary px-5 py-7 text-on-primary shadow-sm sm:px-8 sm:py-10">
-      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-        {{ config.label('home.greeting', { name: auth.displayName() }) }}
-      </h1>
-      @if (auth.shop(); as shop) {
-        <p class="mt-1 text-lg font-medium opacity-90">{{ shop.name }}</p>
-        @if (planName() || shop.subscription_expires_at) {
-          <p class="mt-3 inline-flex flex-wrap gap-x-2 rounded-full bg-black/10 px-3 py-1 text-sm">
-            <span>{{ planName() }}</span>
-            @if (shop.subscription_expires_at) {
-              <span>· {{ config.label('home.validTill', { date: config.date(shop.subscription_expires_at) }) }}</span>
+    <section class="rounded-2xl bg-primary px-5 py-5 text-on-primary shadow-sm sm:px-8 sm:py-7">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h1 class="text-xl font-bold tracking-tight sm:text-2xl">{{ config.label('home.greeting', { name: auth.displayName() }) }}</h1>
+          @if (auth.shop(); as shop) {
+            <p class="truncate font-medium opacity-90">{{ shop.name }}</p>
+            @if (planName() || shop.subscription_expires_at) {
+              <p class="mt-2 inline-flex flex-wrap gap-x-1.5 rounded-full bg-black/10 px-3 py-0.5 text-xs">
+                <span>{{ planName() }}</span>
+                @if (shop.subscription_expires_at) {
+                  <span>· {{ config.label('home.validTill', { date: config.date(shop.subscription_expires_at) }) }}</span>
+                }
+              </p>
             }
-          </p>
+          }
+        </div>
+        @if (auth.shop()) {
+          <a [href]="shareLink()" target="_blank" rel="noopener" class="shrink-0 rounded-xl bg-white/95 px-3 py-2 text-sm font-semibold text-primary shadow-sm">
+            {{ config.label('home.shareStore') }}
+          </a>
         }
-      }
+      </div>
     </section>
 
     @if (auth.shop()) {
-      <section class="mt-5 grid grid-cols-3 gap-3">
-        @for (stat of stats(); track stat.key) {
-          <a [routerLink]="stat.link" class="rounded-2xl border border-border bg-surface p-4 hover:border-primary">
-            <p class="text-2xl font-bold sm:text-3xl" [class.text-error]="stat.alert && stat.value > 0">{{ stat.value }}</p>
-            <p class="mt-1 text-xs text-muted sm:text-sm">{{ config.label(stat.key) }}</p>
+      <!-- Orders waiting on the shop -->
+      <section class="mt-4">
+        <div class="flex items-baseline justify-between">
+          <h2 class="text-sm font-semibold">{{ config.label('home.ordersNow') }}</h2>
+          <a routerLink="/shop-orders" class="text-sm font-medium text-primary">{{ config.label('common.viewAll') }}</a>
+        </div>
+        <div class="mt-2 grid grid-cols-4 gap-2">
+          @for (p of pipeline; track p.key) {
+            @let n = countOf(p.status);
+            <a
+              routerLink="/shop-orders"
+              [queryParams]="{ tab: p.tab }"
+              class="rounded-2xl border p-3 text-center"
+              [class]="p.key === 'new' && n > 0 ? 'border-error/50 bg-error/10' : 'border-border bg-surface hover:border-primary'"
+            >
+              <p class="text-2xl font-bold tabular-nums" [class.text-error]="p.key === 'new' && n > 0">{{ n }}</p>
+              <p class="mt-0.5 text-[11px] leading-tight text-muted">{{ config.label('orders.tab.' + p.key) }}</p>
+            </a>
+          }
+        </div>
+        <p class="mt-2 rounded-xl bg-surface px-3 py-2 text-sm">
+          {{ config.label('home.todaySales') }}: <b class="tabular-nums">{{ config.money(todaySales()) }}</b>
+          <span class="text-muted"> · {{ config.label('home.todayCompleted', { count: todayCompleted() }) }}</span>
+        </p>
+        @if (newest().length) {
+          <ul class="mt-3 grid gap-2">
+            @for (o of newest(); track o.id) {
+              <li><app-order-card [order]="o" [who]="customerName(o.customer_id)" /></li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- One-tap tasks -->
+      <section class="mt-5 grid grid-cols-4 gap-2">
+        @for (a of actions; track a.key) {
+          <a [routerLink]="a.link" [queryParams]="a.query" class="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-surface px-1 py-3 text-center hover:border-primary">
+            <span class="grid size-10 place-items-center rounded-full bg-primary/10 text-primary"><app-icon [name]="a.icon" /></span>
+            <span class="text-[11px] font-medium leading-tight">{{ config.label(a.key) }}</span>
           </a>
         }
       </section>
 
-      <section class="mt-5 rounded-2xl border border-border bg-surface p-5">
+      <!-- Low stock -->
+      <section class="mt-5 rounded-2xl border border-border bg-surface p-4">
         <div class="flex items-center justify-between">
-          <h2 class="font-semibold">{{ config.label('home.lowStock') }}</h2>
-          <a routerLink="/reminders" class="text-sm font-medium text-info">{{ config.label('common.viewAll') }}</a>
+          <h2 class="font-semibold">
+            {{ config.label('home.lowStock') }}
+            @if (unread().length) { <span class="ml-1 rounded-full bg-error px-2 py-0.5 text-xs font-bold text-white">{{ unread().length }}</span> }
+          </h2>
+          <a routerLink="/reminders" class="text-sm font-medium text-primary">{{ config.label('common.viewAll') }}</a>
         </div>
         @if (unread().length === 0) {
-          <p class="mt-3 text-sm text-muted">{{ config.label('home.noReminders') }}</p>
+          <p class="mt-2 text-sm text-muted">{{ config.label('home.noReminders') }}</p>
         } @else {
           <ul class="mt-3 grid gap-2">
             @for (r of unread().slice(0, 5); track r['id']) {
               <li class="flex items-start justify-between gap-3 rounded-xl bg-background px-3 py-2.5 text-sm">
                 <span>{{ r['message'] }}</span>
-                <button type="button" class="shrink-0 text-xs font-medium text-info" (click)="markRead(r)">
+                <button type="button" class="shrink-0 text-xs font-medium text-primary" (click)="markRead(r)">
                   {{ config.label('reminders.markRead') }}
                 </button>
               </li>
             }
           </ul>
+          <a routerLink="/purchases" [queryParams]="{ add: 1 }" class="mt-3 block rounded-xl border border-border px-3 py-2 text-center text-sm font-medium text-primary">
+            + {{ config.label('home.action.addBill') }}
+          </a>
         }
       </section>
     } @else if (!auth.can('can_access_admin')) {
@@ -63,13 +125,13 @@ import { Row } from '../../core/types/models';
       </a>
     }
 
-    <section class="mt-5 grid gap-3 sm:grid-cols-2">
+    <section class="mt-5 grid grid-cols-2 gap-2 text-sm">
       @if (whatsappUrl(); as url) {
-        <a [href]="url" target="_blank" rel="noopener" class="rounded-2xl border border-border bg-surface p-5 font-medium hover:border-success">
+        <a [href]="url" target="_blank" rel="noopener" class="rounded-xl border border-border bg-surface px-3 py-3 text-center font-medium hover:border-success">
           {{ config.label('home.whatsappSupport') }}
         </a>
       }
-      <a routerLink="/support" class="rounded-2xl border border-border bg-surface p-5 font-medium hover:border-primary">
+      <a routerLink="/support" class="rounded-xl border border-border bg-surface px-3 py-3 text-center font-medium hover:border-primary" [class.col-span-2]="!whatsappUrl()">
         {{ config.label('home.raiseTicket') }}
       </a>
     </section>
@@ -81,15 +143,30 @@ export class Home {
   private readonly crud = inject(CrudService);
   private readonly toast = inject(ToastService);
 
-  private readonly counts = signal({ stocks: 0, vendors: 0 });
+  protected readonly pipeline = PIPELINE;
+  protected readonly actions = [
+    { key: 'home.action.addStock', icon: 'box', link: '/stocks', query: { add: 1 } },
+    { key: 'home.action.addBill', icon: 'receipt', link: '/purchases', query: { add: 1 } },
+    { key: 'home.action.customers', icon: 'users', link: '/customers', query: {} },
+    { key: 'home.action.myStore', icon: 'store', link: '/my-store', query: {} },
+  ];
+
+  private readonly open = signal<Order[]>([]);
+  private readonly completedToday = signal<Order[]>([]);
+  private readonly names = signal<Map<string, string>>(new Map());
   protected readonly unread = signal<Row[]>([]);
   protected readonly planName = signal('');
 
-  protected readonly stats = computed(() => [
-    { key: 'home.stocks', value: this.counts().stocks, link: '/stocks', alert: false },
-    { key: 'home.lowStockCount', value: this.unread().length, link: '/reminders', alert: true },
-    { key: 'home.vendors', value: this.counts().vendors, link: '/vendors', alert: false },
-  ]);
+  protected readonly newest = computed(() => this.open().filter((o) => o.status === 'requested').slice(0, 3));
+  protected readonly todaySales = computed(() => this.completedToday().reduce((sum, o) => sum + +o.total, 0));
+  protected readonly todayCompleted = computed(() => this.completedToday().length);
+
+  protected readonly shareLink = computed(() => {
+    const shop = this.auth.shop() as unknown as Record<string, unknown> | null;
+    const link = `${location.origin}/s/${shop?.['slug'] ?? ''}`;
+    const text = format(this.config.label('myStore.shareText'), { shop: shop?.['name'], link, code: shop?.['join_code'] });
+    return whatsappLink('', text) ?? `https://wa.me/?text=${encodeURIComponent(text)}`;
+  });
 
   protected readonly whatsappUrl = computed(() => {
     const number = (this.config.get<string>('SUPPORT_WHATSAPP_NUMBER') ?? '').replace(/\D/g, '');
@@ -98,25 +175,54 @@ export class Home {
 
   constructor() {
     void this.load();
+    void this.loadOrders();
+    // Keep the order tiles fresh while Home is open.
+    const seconds = this.config.get<number>('ORDER_POLL_SECONDS') ?? 20;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void this.loadOrders();
+    }, seconds * 1000);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  protected countOf(status: OrderStatus): number {
+    return this.open().filter((o) => o.status === status).length;
+  }
+
+  protected customerName(id: string): string {
+    return this.names().get(id) ?? '';
   }
 
   private async load(): Promise<void> {
     const shop = this.auth.shop();
     if (!shop) return;
     try {
-      const [stocks, vendors, reminders, plans] = await Promise.all([
-        this.crud.list('stocks', { shop_id: shop.id }),
-        this.crud.list('vendors', { shop_id: shop.id }),
+      const [reminders, plans] = await Promise.all([
         this.crud.list('stock_reminders', { shop_id: shop.id, is_read: false }, 'reminder_date.desc'),
-        shop.subscription_plan_id
-          ? this.crud.list('pricing_plans', { id: shop.subscription_plan_id })
-          : Promise.resolve([]),
+        shop.subscription_plan_id ? this.crud.list('pricing_plans', { id: shop.subscription_plan_id }) : Promise.resolve([]),
       ]);
-      this.counts.set({ stocks: stocks.length, vendors: vendors.length });
       this.unread.set(reminders);
       this.planName.set(String(plans[0]?.['name'] ?? ''));
     } catch (err) {
       this.toast.error(err);
+    }
+  }
+
+  private async loadOrders(): Promise<void> {
+    const shop = this.auth.shop();
+    if (!shop) return;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    try {
+      const [open, done, customers] = await Promise.all([
+        this.crud.list<Order>('orders', { shop_id: shop.id, status__in: OPEN }, 'created_at.desc'),
+        this.crud.list<Order>('orders', { shop_id: shop.id, status: 'completed', updated_at__gte: today }),
+        this.crud.list<{ user_id: string; name: string | null; phone: string | null }>('shop_customers', { shop_id: shop.id }),
+      ]);
+      this.open.set(open);
+      this.completedToday.set(done);
+      this.names.set(new Map(customers.map((c) => [c.user_id, c.name || (c.phone ? `+${c.phone}` : '')])));
+    } catch {
+      // Tiles stay as they were; the next refresh tries again.
     }
   }
 

@@ -8,6 +8,10 @@ export type FieldType =
   | 'number'
   | 'textarea'
   | 'json'
+  /** On/off switches for a {key: true} object; keys from the PERMISSIONS setting. */
+  | 'permissions'
+  /** A list of short texts, edited as chips. */
+  | 'list'
   | 'boolean'
   | 'select'
   | 'date'
@@ -70,6 +74,11 @@ export function primaryKey(config: EntityConfig): string {
   return config.table === 'app_settings' ? 'key' : 'id';
 }
 
+/** "perm.can_order" label, or the key made readable ("order"). */
+export function permissionLabel(config: ConfigService, key: string): string {
+  return config.hasLabel(`perm.${key}`) ? config.label(`perm.${key}`) : key.replace(/^can_/, '').replace(/_/g, ' ');
+}
+
 export function displayValue(
   field: FieldDef,
   row: Row,
@@ -89,6 +98,13 @@ export function displayValue(
       return config.date(value);
     case 'json':
       return JSON.stringify(value);
+    case 'permissions':
+      return Object.entries(value as Record<string, unknown>)
+        .filter(([, on]) => on === true)
+        .map(([key]) => permissionLabel(config, key))
+        .join(', ');
+    case 'list':
+      return Array.isArray(value) ? value.join(', ') : String(value);
     case 'image':
       return '📷';
     default:

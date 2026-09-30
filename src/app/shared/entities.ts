@@ -103,7 +103,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
     fields: [
       { key: 'name', required: true },
       { key: 'description' },
-      { key: 'permissions', type: 'json', required: true },
+      { key: 'permissions', type: 'permissions', required: true },
     ],
   },
   pricing: {
@@ -114,7 +114,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { key: 'name', required: true },
       { key: 'price', type: 'money', required: true },
       { key: 'duration_days', type: 'number', required: true },
-      { key: 'features', type: 'json', grid: false },
+      { key: 'features', type: 'list', grid: false },
       { key: 'is_active', type: 'boolean' },
       { key: 'sort_order', type: 'number' },
     ],

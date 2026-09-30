@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { CrudService } from '../../core/services/crud.service';
@@ -55,7 +55,7 @@ const TABS: { key: string; statuses: OrderStatus[] }[] = [
     }
   `,
 })
-export class ShopOrders {
+export class ShopOrders implements OnInit {
   protected readonly config = inject(ConfigService);
   private readonly auth = inject(AuthService);
   private readonly crud = inject(CrudService);
@@ -63,6 +63,8 @@ export class ShopOrders {
 
   protected readonly tabs = TABS;
   protected readonly tab = signal('new');
+  /** ?tab=accepted opens that tab (links from Home). */
+  readonly tabParam = input<string | undefined>(undefined, { alias: 'tab' });
   protected readonly orders = signal<Order[]>([]);
   protected readonly counts = signal<Partial<Record<OrderStatus, number>>>({});
   protected readonly loading = signal(true);
@@ -75,6 +77,11 @@ export class ShopOrders {
       if (document.visibilityState === 'visible') void this.load(false);
     }, seconds * 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+  }
+
+  ngOnInit(): void {
+    const key = this.tabParam();
+    if (key && TABS.some((t) => t.key === key) && key !== this.tab()) this.select(key);
   }
 
   private get shopId(): string | null {
