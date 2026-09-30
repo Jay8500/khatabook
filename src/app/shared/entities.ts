@@ -31,20 +31,28 @@ const addShopUnit = async ({ crud, auth }: OptionContext, unit: string): Promise
   await auth.loadContext();
 };
 
+/** Categories already used in this shop's stock (new ones are added from the form). */
+const stockCategories = async ({ crud, auth }: OptionContext): Promise<Option[]> => {
+  const rows = await crud.list('stocks', { shop_id: auth.shop()?.id ?? null });
+  const names = [...new Set(rows.map((r) => String(r['category'] ?? '').trim()).filter(Boolean))].sort();
+  return names.map((c) => ({ value: c, label: c }));
+};
+
 export const ENTITIES: Record<string, EntityConfig> = {
   // ---- Shop -----------------------------------------------------------------
   stocks: {
     table: 'stocks',
     labelPrefix: 'stocks',
     scope: 'shop',
-    order: 'product_name',
+    order: 'category,product_name',
+    groupBy: 'category',
     fields: [
       { key: 'image_url', type: 'image', grid: false, image: { bucketSetting: 'PRODUCTS_BUCKET', rulesSetting: 'PRODUCT_IMAGE' } },
       { key: 'product_name', required: true },
       { key: 'qty', type: 'number', required: true },
       { key: 'unit', type: 'select', options: unitOptions, addOption: addShopUnit },
       { key: 'price', type: 'money' },
-      { key: 'category' },
+      { key: 'category', type: 'select', options: stockCategories, addOption: async () => undefined },
       { key: 'show_in_store', type: 'boolean', default: true },
       { key: 'reserved_qty', type: 'number', form: false },
       { key: 'low_stock_threshold', type: 'number', grid: false },
@@ -120,6 +128,7 @@ export const ENTITIES: Record<string, EntityConfig> = {
       { key: 'name', required: true },
       { key: 'subscription_plan_id', type: 'select', options: fromTable('pricing_plans', 'name') },
       { key: 'subscription_expires_at', type: 'date' },
+      { key: 'is_active', type: 'boolean' },
       { key: 'is_test', type: 'boolean' },
       { key: 'created_at', type: 'date', form: false },
     ],

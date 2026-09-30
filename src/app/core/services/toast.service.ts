@@ -37,10 +37,13 @@ export class ToastService {
 
   /** Uses the error's message as a TOAST_MESSAGES key when one exists, else the generic 'error'. */
   error(err: unknown): void {
-    const message = (err as { message?: string } | null)?.message;
-    const known = message && this.config.get<Record<string, string>>('TOAST_MESSAGES')?.[message];
+    const message = (err as { message?: string } | null)?.message ?? '';
+    const toasts = this.config.get<Record<string, string>>('TOAST_MESSAGES') ?? {};
+    // Database unique rules (e.g. duplicate product) map to "unique.<constraint name>".
+    const constraint = /unique constraint "([^"]+)"/.exec(message)?.[1];
+    const key = toasts[message] ? message : constraint && toasts[`unique.${constraint}`] ? `unique.${constraint}` : 'error';
     console.error(err);
-    this.show(known ? message : 'error', 'error');
+    this.show(key, key === 'error' ? 'error' : 'warning');
   }
 
   dismiss(id: number): void {

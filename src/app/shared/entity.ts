@@ -57,6 +57,8 @@ export interface EntityConfig {
   create?: boolean;
   edit?: boolean;
   remove?: boolean;
+  /** Grid shows a heading per value of this column (e.g. category). */
+  groupBy?: string;
   /** Extra header button that calls an RPC returning a count (e.g. check stock now). */
   action?: { label: string; rpc: string };
 }

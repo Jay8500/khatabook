@@ -50,6 +50,7 @@ import { EntityConfig, OptionMap, primaryKey } from '../entity';
         [loading]="loading()"
         [editable]="def.edit !== false"
         [removable]="def.remove !== false"
+        [groupBy]="def.groupBy"
         (edit)="open($event)"
         (remove)="remove($event)"
       />

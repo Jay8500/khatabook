@@ -77,6 +77,9 @@
     }
   </header>
 
+  @if (shopPaused()) {
+    <p class="bg-error/10 px-4 py-2.5 text-center text-sm font-medium text-error">{{ config.label('shop.paused') }}</p>
+  }
   <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6" [class.max-md:pb-28]="hasBottomBar()">
     <router-outlet />
   </main>

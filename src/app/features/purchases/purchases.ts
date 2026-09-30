@@ -13,6 +13,7 @@ import { ImageRules, blobToBase64, compressImage } from '../../shared/image';
 interface Item {
   name: string;
   qty: number;
+  unit: string;
   rate: number;
 }
 
@@ -89,14 +90,33 @@ const FIELDS: FieldDef[] = [
           <h3 class="mb-2 mt-5 text-sm font-semibold">{{ config.label('purchases.items') }}</h3>
           <div class="grid gap-2">
             @for (item of items(); track $index; let i = $index) {
-              <div class="grid grid-cols-[1fr_4.5rem_5.5rem_auto] gap-2">
-                <input [class]="inputClass" [placeholder]="config.label('purchases.itemName')" [value]="item.name" (input)="setItem(i, 'name', $any($event.target).value)" />
-                <input type="number" step="any" [class]="inputClass" [placeholder]="config.label('purchases.itemQty')" [value]="item.qty" (input)="setItem(i, 'qty', $any($event.target).value)" />
-                <input type="number" step="any" [class]="inputClass" [placeholder]="config.label('purchases.itemRate')" [value]="item.rate" (input)="setItem(i, 'rate', $any($event.target).value)" />
-                <button type="button" class="px-2 text-error" [attr.aria-label]="config.label('common.delete')" (click)="removeItem(i)">&times;</button>
+              <div class="grid gap-2 rounded-xl border border-border p-2">
+                <div class="flex gap-2">
+                  <input list="stock-names" [class]="inputClass" [placeholder]="config.label('purchases.itemName')" [value]="item.name" (input)="pickName(i, $any($event.target).value)" />
+                  <button type="button" class="px-2 text-lg text-error" [attr.aria-label]="config.label('common.delete')" (click)="removeItem(i)">&times;</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="number" step="any" [class]="inputClass" [placeholder]="config.label('purchases.itemQty')" [value]="item.qty" (input)="setItem(i, 'qty', $any($event.target).value)" />
+                  <select [class]="inputClass" (change)="setItem(i, 'unit', $any($event.target).value)">
+                    <option value="">{{ config.label('purchases.itemUnit') }}</option>
+                    @for (u of units(); track u) {
+                      <option [value]="u" [selected]="u === item.unit">{{ u }}</option>
+                    }
+                  </select>
+                  <input type="number" step="any" [class]="inputClass" [placeholder]="config.label('purchases.itemRate')" [value]="item.rate" (input)="setItem(i, 'rate', $any($event.target).value)" />
+                </div>
+                @if (isNew(item)) {
+                  <p class="px-1 text-xs text-info">{{ config.label('purchases.newStockItem') }}</p>
+                }
               </div>
             }
           </div>
+          <datalist id="stock-names">
+            @for (n of stockNames(); track n) {
+              <option [value]="n"></option>
+            }
+          </datalist>
+          <p class="mt-2 text-xs text-muted">{{ config.label('purchases.stockHint') }}</p>
           <div class="mt-2 flex items-center justify-between text-sm">
             <button type="button" class="font-medium text-info" (click)="addItem()">+ {{ config.label('purchases.addItem') }}</button>
             <span class="font-semibold">{{ config.label('purchases.subtotal') }}: {{ config.money(subtotal()) }}</span>
@@ -128,6 +148,13 @@ export class Purchases implements OnDestroy {
 
   protected readonly rows = signal<Row[]>([]);
   protected readonly vendors = signal<Option[]>([]);
+  /** This shop's products, for name suggestions and units. */
+  private readonly stock = signal<{ name: string; unit: string }[]>([]);
+  protected readonly stockNames = computed(() => this.stock().map((s) => s.name));
+  protected readonly units = computed(() => {
+    const own = ((this.auth.shop() as unknown as { custom_units?: string[] } | null)?.custom_units ?? []).map(String);
+    return [...new Set([...this.config.list('UNITS'), ...own])];
+  });
   protected readonly options = computed<OptionMap>(() => ({ vendor_id: this.vendors() }));
   protected readonly loading = signal(false);
 
@@ -161,11 +188,13 @@ export class Purchases implements OnDestroy {
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      const [rows, vendors] = await Promise.all([
+      const [rows, vendors, stock] = await Promise.all([
         this.crud.list('vendor_purchases', { shop_id: this.shopId }, 'purchase_date.desc'),
         this.crud.list('vendors', { shop_id: this.shopId }, 'name'),
+        this.crud.list('stocks', { shop_id: this.shopId }, 'product_name'),
       ]);
       this.rows.set(rows);
+      this.stock.set(stock.map((r) => ({ name: String(r['product_name']), unit: (r['unit'] as string | null) ?? '' })));
       this.vendors.set(vendors.map((v) => ({ value: String(v['id']), label: String(v['name']) })));
     } catch (err) {
       this.toast.error(err);
@@ -175,7 +204,7 @@ export class Purchases implements OnDestroy {
   }
 
   protected openScan(): void {
-    this.items.set([{ name: '', qty: 1, rate: 0 }]);
+    this.items.set([{ name: '', qty: 1, unit: '', rate: 0 }]);
     this.photo.set(null);
     this.photoName.set('');
     this.qrText.set('');
@@ -189,7 +218,7 @@ export class Purchases implements OnDestroy {
   }
 
   protected addItem(): void {
-    this.items.update((list) => [...list, { name: '', qty: 1, rate: 0 }]);
+    this.items.update((list) => [...list, { name: '', qty: 1, unit: '', rate: 0 }]);
   }
 
   protected removeItem(index: number): void {
@@ -197,9 +226,21 @@ export class Purchases implements OnDestroy {
   }
 
   protected setItem(index: number, key: keyof Item, value: string): void {
-    this.items.update((list) =>
-      list.map((item, i) => (i === index ? { ...item, [key]: key === 'name' ? value : Number(value) } : item)),
-    );
+    const text = key === 'name' || key === 'unit';
+    this.items.update((list) => list.map((item, i) => (i === index ? { ...item, [key]: text ? value : Number(value) } : item)));
+  }
+
+  /** Picking an existing product fills its unit. */
+  protected pickName(index: number, value: string): void {
+    this.setItem(index, 'name', value);
+    const match = this.stock().find((s) => s.name.toLowerCase() === value.trim().toLowerCase());
+    if (match?.unit && !this.items()[index].unit) this.setItem(index, 'unit', match.unit);
+  }
+
+  /** Not in stock yet: saving the bill creates it. */
+  protected isNew(item: Item): boolean {
+    const name = item.name.trim().toLowerCase();
+    return !!name && !this.stock().some((s) => s.name.toLowerCase() === name);
   }
 
   protected async pickPhoto(event: Event): Promise<void> {
@@ -274,7 +315,7 @@ export class Purchases implements OnDestroy {
         qr_text: this.qrText() || undefined,
         items: this.items().filter((i) => i.name.trim()),
       });
-      this.toast.show('scanSaved', 'success');
+      this.toast.show('scanSaved', 'success', { count: this.items().filter((i) => i.name.trim() && i.qty > 0).length });
       await this.closeScan();
       await this.load();
     } catch (err) {

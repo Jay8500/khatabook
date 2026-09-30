@@ -46,6 +46,10 @@ export class App {
     ),
     { initialValue: this.router.url },
   );
+  /** Shop deactivated by the platform admin (owner/staff view). */
+  protected readonly shopPaused = computed(
+    () => (this.auth.shop() as unknown as { is_active?: boolean } | null)?.is_active === false && !this.auth.can('can_manage_shops'),
+  );
   protected readonly onProfile = computed(() => this.url().startsWith('/profile'));
 
   protected readonly nav = computed(() =>

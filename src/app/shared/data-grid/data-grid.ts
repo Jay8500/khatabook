@@ -39,7 +39,15 @@ import { FieldDef, OptionMap, displayValue } from '../entity';
             </tr>
           </thead>
           <tbody>
-            @for (row of filtered(); track $index) {
+            @for (group of groups(); track group.key) {
+              @if (groupBy()) {
+                <tr class="border-t border-border bg-background/70">
+                  <td [attr.colspan]="columns().length + (actions() ? 1 : 0)" class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                    {{ group.key || config.label('common.uncategorised') }} <span class="font-normal">({{ group.rows.length }})</span>
+                  </td>
+                </tr>
+              }
+            @for (row of group.rows; track $index) {
               <tr class="border-t border-border hover:bg-background/60">
                 @for (col of columns(); track col.key) {
                   <td class="max-w-52 truncate px-4 py-3" [title]="cell(col, row)">{{ cell(col, row) }}</td>
@@ -51,13 +59,20 @@ import { FieldDef, OptionMap, displayValue } from '../entity';
                 }
               </tr>
             }
+            }
           </tbody>
         </table>
       </div>
 
       <!-- Phone -->
       <ul class="grid grid-cols-1 gap-3 md:hidden">
-        @for (row of filtered(); track $index) {
+        @for (group of groups(); track group.key) {
+          @if (groupBy()) {
+            <li class="mt-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted first:mt-0">
+              {{ group.key || config.label('common.uncategorised') }} <span class="font-normal">({{ group.rows.length }})</span>
+            </li>
+          }
+        @for (row of group.rows; track $index) {
           <li class="min-w-0 rounded-2xl border border-border bg-surface p-4">
             <dl class="grid gap-2">
               @for (col of columns(); track col.key) {
@@ -73,6 +88,7 @@ import { FieldDef, OptionMap, displayValue } from '../entity';
               </div>
             }
           </li>
+        }
         }
       </ul>
     }
@@ -102,6 +118,8 @@ export class DataGrid {
   readonly loading = input(false);
   readonly editable = input(true);
   readonly removable = input(true);
+  /** Column to group rows under headings (e.g. category); rows are expected sorted by it. */
+  readonly groupBy = input<string | undefined>(undefined);
 
   readonly edit = output<Row>();
   readonly remove = output<Row>();
@@ -115,6 +133,20 @@ export class DataGrid {
     return this.rows().filter((row) =>
       this.columns().some((col) => this.cell(col, row).toLowerCase().includes(q)),
     );
+  });
+
+  protected readonly groups = computed(() => {
+    const key = this.groupBy();
+    if (!key) return [{ key: '', rows: this.filtered() }];
+    const map = new Map<string, Row[]>();
+    for (const row of this.filtered()) {
+      const k = String(row[key] ?? '').trim();
+      map.set(k, [...(map.get(k) ?? []), row]);
+    }
+    // Named groups A-Z, uncategorised last.
+    return [...map.entries()]
+      .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)))
+      .map(([k, rows]) => ({ key: k, rows }));
   });
 
   protected cell(field: FieldDef, row: Row): string {
