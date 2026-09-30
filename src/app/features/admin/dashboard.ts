@@ -262,6 +262,19 @@ const STATUS_DOT: Record<Status, string> = {
             </button>
           }
         </div>
+        <button type="button" class="mt-2 text-xs font-medium text-primary" (click)="showHelp.set(!showHelp())">
+          ⓘ {{ config.label(showHelp() ? 'dash.help.hide' : 'dash.help.show') }}
+        </button>
+        @if (showHelp()) {
+          <dl class="mt-2 grid gap-2 rounded-xl border border-border bg-surface p-3 text-xs">
+            @for (k of helpKeys; track k) {
+              <div>
+                <dt class="font-semibold">{{ config.label('dash.help.' + k + '.title') }}</dt>
+                <dd class="text-muted">{{ config.label('dash.help.' + k) }}</dd>
+              </div>
+            }
+          </dl>
+        }
         <ul class="mt-2 grid gap-2 lg:grid-cols-2">
           @for (s of shops(); track s.id) {
             @let st = status(s);
@@ -399,6 +412,8 @@ export class AdminDashboard {
   protected readonly requests = signal<ClosureRequest[]>([]);
   protected readonly decisionNotes = signal<Record<string, string>>({});
   protected readonly openHistory = signal('');
+  protected readonly showHelp = signal(false);
+  protected readonly helpKeys = ['recordPayment', 'store', 'deactivate', 'closed'];
   protected readonly plans = signal<Plan[]>([]);
   protected readonly paying = signal<ShopRow | null>(null);
   protected readonly planId = signal('');

@@ -1,7 +1,8 @@
 import { Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ConfigService, format } from '../../core/services/config.service';
 import { NEXT_STATUS, OrdersService, upiLink, whatsappLink } from '../../core/services/orders.service';
+import { StoreService } from '../../core/services/store.service';
 import { ToastService } from '../../core/services/toast.service';
 import { OrderDetail as Detail, OrderStatus, PaymentMode } from '../../core/types/store';
 import { QtyStepper } from '../../shared/qty-stepper/qty-stepper';
@@ -200,6 +201,9 @@ const FLOW: OrderStatus[] = ['requested', 'accepted', 'packed', 'ready', 'comple
             {{ config.label(isShop() ? 'orders.whatsappCustomer' : 'orders.whatsappShop') }}
           </a>
         }
+        @if (!isShop() && canReorder()) {
+          <button type="button" class="rounded-xl bg-primary px-4 py-3 font-semibold text-on-primary" (click)="orderAgain()">{{ config.label('orders.orderAgain') }}</button>
+        }
         @if (!isShop() && canCancel()) {
           <button type="button" class="rounded-xl border border-error/40 px-4 py-3 font-semibold text-error" [disabled]="busy()" (click)="cancel()">{{ config.label('orders.cancelMine') }}</button>
         }
@@ -239,8 +243,13 @@ export class OrderDetailPage {
   protected readonly config = inject(ConfigService);
   private readonly orders = inject(OrdersService);
   private readonly toast = inject(ToastService);
+  private readonly storeService = inject(StoreService);
+  private readonly router = inject(Router);
 
   readonly id = input.required<string>();
+  /** ?reorder=1 (from the order list): order again as soon as the order loads. */
+  readonly reorder = input<string | undefined>(undefined);
+  private reordered = false;
 
   protected readonly flow = FLOW;
   protected readonly modes: PaymentMode[] = ['full', 'advance', 'cod'];
@@ -275,6 +284,23 @@ export class OrderDetailPage {
     const o = this.detail()?.order;
     return !!o && ['requested', 'accepted'].includes(o.status) && o.payment_status === 'unpaid' && +o.amount_paid === 0;
   });
+  protected readonly canReorder = computed(() => {
+    const d = this.detail();
+    return !!d && ['completed', 'cancelled', 'rejected'].includes(d.order.status) && d.items.some((i) => i.stock_id);
+  });
+
+  /** Same items and quantities into the shop's cart, then straight to the cart. */
+  protected orderAgain(): void {
+    const d = this.detail();
+    if (!d) return;
+    const lines = d.items
+      .filter((i) => i.stock_id)
+      .map((i) => ({ id: i.stock_id!, qty: +(i.qty_accepted ?? i.qty_requested) || +i.qty_requested }));
+    this.storeService.prefillCart(d.shop.slug, lines);
+    this.toast.show('reorderReady', 'info');
+    void this.router.navigate(['/s', d.shop.slug, 'cart']);
+  }
+
   protected readonly acceptTotal = computed(() => {
     const d = this.detail();
     if (!d) return 0;
@@ -331,6 +357,10 @@ export class OrderDetailPage {
       }
       const changed = JSON.stringify(d) !== JSON.stringify(this.detail());
       this.detail.set(d);
+      if (this.reorder() && !this.reordered && this.canReorder()) {
+        this.reordered = true;
+        this.orderAgain();
+      }
       if (initial) {
         this.mode.set(d.shop.default_payment_mode ?? 'full');
         this.recomputeAdvance();

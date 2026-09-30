@@ -96,6 +96,15 @@ export class StoreService {
   }
 
   /** Re-attach saved lines to fresh items (prices/availability may have changed). */
+  /** Order again: saves these lines as the shop's cart; the store trims them to what is available. */
+  prefillCart(slug: string, lines: { id: string; qty: number }[]): void {
+    try {
+      localStorage.setItem(CART_KEY(slug), JSON.stringify(lines));
+    } catch {
+      // Storage unavailable: the customer adds items again by hand.
+    }
+  }
+
   private restoreCart(slug: string, items: StoreItem[]): void {
     let saved: { id: string; qty: number }[] = [];
     try {

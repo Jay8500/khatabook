@@ -84,7 +84,14 @@ const NOTICE_KEY = 'khata.shopNoticeSeen';
       } @else {
         <ul class="mt-3 grid gap-2">
           @for (o of visible(); track o.id) {
-            <li><app-order-card [order]="o" [who]="shopName(o.shop_id)" /></li>
+            <li>
+              <app-order-card [order]="o" [who]="shopName(o.shop_id)" />
+              @if (o.status === 'completed' && shopOpen(o.shop_id)) {
+                <a [routerLink]="['/orders', o.id]" [queryParams]="{ reorder: 1 }" class="-mt-2 block rounded-b-2xl border border-t-0 border-border bg-primary/5 px-4 pt-3.5 pb-2 text-right text-sm font-semibold text-primary">
+                  ↻ {{ config.label('orders.orderAgain') }}
+                </a>
+              }
+            </li>
           }
         </ul>
       }
@@ -169,6 +176,12 @@ export class MyOrders {
     } catch {
       // Without storage the pop-up may show again next time.
     }
+  }
+
+  /** Order again only where the shop still takes orders. */
+  protected shopOpen(id: string): boolean {
+    const s = this.shops().find((x) => x.id === id);
+    return !!s && (s.state === 'open' || s.state === 'closing');
   }
 
   protected shopName(id: string): string {
