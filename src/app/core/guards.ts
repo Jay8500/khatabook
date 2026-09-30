@@ -30,5 +30,7 @@ export const permissionGuard: CanActivateFn = (route) => {
 /** Customers (no shop of their own) land on their orders instead of the shop dashboard. */
 export const homeGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.can('can_manage_own_shop') || inject(Router).createUrlTree([auth.can('can_order') ? '/orders' : '/support']);
+  if (auth.can('can_manage_own_shop')) return true;
+  const home = auth.can('can_access_admin') ? '/admin' : auth.can('can_order') ? '/orders' : '/support';
+  return inject(Router).createUrlTree([home]);
 };

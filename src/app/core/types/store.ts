@@ -1,6 +1,8 @@
 export type Fulfilment = 'pickup' | 'delivery';
 export type PaymentMode = 'full' | 'advance' | 'cod';
 export type OrderStatus = 'requested' | 'accepted' | 'packed' | 'ready' | 'completed' | 'rejected' | 'cancelled';
+/** open, closing (owner asked to close), paused (admin), closed (for good). */
+export type ShopState = 'open' | 'closing' | 'paused' | 'closed';
 export type PaymentStatus = 'unpaid' | 'pending_verification' | 'partially_paid' | 'paid';
 
 /** Public store info from store_get. */
@@ -9,6 +11,7 @@ export interface StoreShop {
   name: string;
   slug: string;
   store_enabled: boolean;
+  state?: ShopState;
   pickup_enabled: boolean;
   delivery_enabled: boolean;
   delivery_charge: number;

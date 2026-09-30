@@ -43,7 +43,12 @@ import { QtyStepper } from '../../shared/qty-stepper/qty-stepper';
         </div>
       </section>
 
-      @if (!shop.store_enabled) {
+      @if (shop.state === 'closing') {
+        <p class="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-3 text-center text-sm text-warning">{{ config.label('shopState.notice.closing', { shop: shop.name }) }}</p>
+      }
+      @if (shop.state === 'closed') {
+        <p class="mt-6 rounded-2xl border border-error/40 bg-error/10 p-4 text-center text-sm text-error">{{ config.label('shopState.notice.closed', { shop: shop.name }) }}</p>
+      } @else if (!shop.store_enabled) {
         <p class="mt-6 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-center text-sm">{{ config.label('store.closed') }}</p>
       } @else {
         <!-- Search + categories -->

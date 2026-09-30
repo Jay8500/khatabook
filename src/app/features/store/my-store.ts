@@ -6,6 +6,16 @@ import { whatsappLink } from '../../core/services/orders.service';
 import { ToastService } from '../../core/services/toast.service';
 import { PaymentMode } from '../../core/types/store';
 import { qrDataUrl } from '../../shared/qr';
+import { SupabaseService } from '../../core/services/supabase.service';
+
+interface Closure {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  reason: string | null;
+  admin_note: string | null;
+  created_at: string;
+  decided_at: string | null;
+}
 
 interface StoreForm {
   name: string;
@@ -32,7 +42,15 @@ interface StoreForm {
     <h1 class="text-xl font-bold sm:text-2xl">{{ config.label('myStore.title') }}</h1>
     <p class="mt-1 text-sm text-muted">{{ config.label('myStore.hint') }}</p>
 
-    @if (shop(); as s) {
+    @if (closure()?.status === 'approved') {
+      <section class="mt-5 rounded-2xl border border-error/40 bg-error/10 p-4 text-sm">
+        <h2 class="font-semibold text-error">{{ config.label('myStore.closedTitle') }}</h2>
+        <p class="mt-1">{{ config.label('myStore.closedHint', { date: config.date(closure()!.decided_at ?? '') }) }}</p>
+        @if (closure()!.admin_note) {
+          <p class="mt-2 rounded-lg bg-surface px-3 py-2">{{ closure()!.admin_note }}</p>
+        }
+      </section>
+    } @else if (shop(); as s) {
       <!-- Share -->
       <section class="mt-5 rounded-2xl border-2 border-primary bg-surface p-4">
         <h2 class="font-semibold">{{ config.label('myStore.shareTitle') }}</h2>
@@ -103,6 +121,45 @@ interface StoreForm {
           {{ config.label(busy() ? 'common.loading' : 'common.save') }}
         </button>
       </form>
+
+      <!-- Close my shop: a request to the platform admin, who settles and approves -->
+      <section class="mt-8 rounded-2xl border border-error/30 bg-surface p-4 text-sm">
+        <h2 class="font-semibold text-error">{{ config.label('myStore.closeTitle') }}</h2>
+        @if (closure()?.status === 'pending') {
+          <p class="mt-2 rounded-xl bg-warning/10 px-3 py-2 text-warning">
+            {{ config.label('myStore.closePending', { date: config.date(closure()!.created_at) }) }}
+          </p>
+          <button type="button" class="mt-3 w-full rounded-xl border border-border px-4 py-2.5 font-medium disabled:opacity-50" [disabled]="closing()" (click)="withdrawClosure()">
+            {{ config.label('myStore.closeWithdraw') }}
+          </button>
+        } @else {
+          @if (closure()?.status === 'rejected') {
+            <p class="mt-2 rounded-xl bg-background px-3 py-2">
+              {{ config.label('myStore.closeRejected') }}@if (closure()!.admin_note) {: {{ closure()!.admin_note }}}
+            </p>
+          }
+          <p class="mt-1 text-muted">{{ config.label('myStore.closeHint') }}</p>
+          @if (closeOpen()) {
+            <textarea
+              rows="2"
+              [class]="inputClass"
+              [placeholder]="config.label('myStore.closeReason')"
+              [value]="closeReason()"
+              (input)="closeReason.set($any($event.target).value)"
+            ></textarea>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" class="rounded-xl border border-border px-4 py-2.5 font-medium" (click)="closeOpen.set(false)">{{ config.label('common.cancel') }}</button>
+              <button type="button" class="rounded-xl bg-error px-4 py-2.5 font-semibold text-white disabled:opacity-50" [disabled]="closing()" (click)="requestClosure()">
+                {{ config.label('myStore.closeSend') }}
+              </button>
+            </div>
+          } @else {
+            <button type="button" class="mt-3 w-full rounded-xl border border-error/40 px-4 py-2.5 font-medium text-error" (click)="closeOpen.set(true)">
+              {{ config.label('myStore.closeButton') }}
+            </button>
+          }
+        }
+      </section>
     }
   `,
 })
@@ -111,6 +168,7 @@ export class MyStore {
   private readonly auth = inject(AuthService);
   private readonly crud = inject(CrudService);
   private readonly toast = inject(ToastService);
+  private readonly supabase = inject(SupabaseService);
 
   protected readonly modes: PaymentMode[] = ['full', 'advance', 'cod'];
   protected readonly inputClass =
@@ -121,6 +179,10 @@ export class MyStore {
   protected readonly form = signal<StoreForm>(this.toForm());
   protected readonly busy = signal(false);
   protected readonly poster = signal<string | null>(null);
+  protected readonly closure = signal<Closure | null>(null);
+  protected readonly closeOpen = signal(false);
+  protected readonly closeReason = signal('');
+  protected readonly closing = signal(false);
 
   protected readonly link = computed(() => `${location.origin}/s/${this.shop()?.['slug'] ?? ''}`);
   protected readonly shareWhatsapp = computed(() => {
@@ -134,6 +196,44 @@ export class MyStore {
 
   constructor() {
     void this.makeQr();
+    void this.loadClosure();
+  }
+
+  private async loadClosure(): Promise<void> {
+    try {
+      this.closure.set(await this.supabase.callSecureRpc<Closure | null>('my_shop_closure'));
+    } catch {
+      // Only needed for the close section.
+    }
+  }
+
+  protected async requestClosure(): Promise<void> {
+    if (!confirm(this.config.label('myStore.closeConfirm', { shop: this.shop()?.['name'] }))) return;
+    this.closing.set(true);
+    try {
+      await this.supabase.callSecureRpc('request_shop_closure', { p_reason: this.closeReason() });
+      this.closeOpen.set(false);
+      this.closeReason.set('');
+      this.toast.show('closureRequested', 'success');
+      await this.loadClosure();
+    } catch (err) {
+      this.toast.error(err);
+    } finally {
+      this.closing.set(false);
+    }
+  }
+
+  protected async withdrawClosure(): Promise<void> {
+    this.closing.set(true);
+    try {
+      await this.supabase.callSecureRpc('withdraw_shop_closure');
+      this.toast.show('closureWithdrawn', 'success');
+      await this.loadClosure();
+    } catch (err) {
+      this.toast.error(err);
+    } finally {
+      this.closing.set(false);
+    }
   }
 
   private toForm(): StoreForm {

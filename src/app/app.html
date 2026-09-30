@@ -63,7 +63,7 @@
           <a
             [routerLink]="item.path"
             routerLinkActive="!bg-primary !text-on-primary"
-            [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+            [routerLinkActiveOptions]="{ exact: item.path === '/' || item.path === '/admin' }"
             class="flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-muted hover:text-text"
           >
             <app-icon [name]="item.icon" class="!size-4" />
@@ -77,8 +77,8 @@
     }
   </header>
 
-  @if (shopPaused()) {
-    <p class="bg-error/10 px-4 py-2.5 text-center text-sm font-medium text-error">{{ config.label('shop.paused') }}</p>
+  @if (shopBanner(); as banner) {
+    <p class="bg-error/10 px-4 py-2.5 text-center text-sm font-medium text-error">{{ config.label(banner) }}</p>
   }
   <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-6" [class.max-md:pb-28]="hasBottomBar()">
     <router-outlet />
@@ -99,7 +99,7 @@
           <a
             [routerLink]="item.path"
             routerLinkActive="!text-primary [&>span:first-child]:!bg-primary/15"
-            [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+            [routerLinkActiveOptions]="{ exact: item.path === '/' || item.path === '/admin' }"
             class="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted"
             (click)="moreOpen.set(false)"
           >

@@ -12,7 +12,9 @@ interface Totals {
   shops: number;
   active: number;
   expired: number;
-  deactivated: number;
+  paused: number;
+  closing: number;
+  closed: number;
   new_shops: number;
   revenue: number;
   payments: number;
@@ -32,6 +34,10 @@ interface ShopRow {
   name: string;
   slug: string;
   is_active: boolean;
+  closed_at: string | null;
+  state: 'open' | 'closing' | 'paused' | 'closed';
+  plan_price: number | null;
+  payments_list: Payment[];
   subscription_expires_at: string | null;
   created_at: string;
   plan: string | null;
@@ -45,6 +51,31 @@ interface ShopRow {
   paid_total: number;
 }
 
+interface Payment {
+  paid_at: string;
+  amount: number;
+  plan: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  note: string | null;
+}
+
+interface ClosureRequest {
+  id: string;
+  shop_id: string;
+  shop: string;
+  reason: string | null;
+  created_at: string;
+  owner_phone: string | null;
+  owner_name: string | null;
+  open_orders: number;
+  paid_total: number;
+  valid_till: string | null;
+}
+
+type Status = 'active' | 'expired' | 'paused' | 'closing' | 'closed';
+type PlanFilter = 'all' | 'trial' | 'paid' | 'none';
+
 interface Plan {
   id: string;
   name: string;
@@ -53,6 +84,21 @@ interface Plan {
 }
 
 const PERIODS: Period[] = ['today', 'week', 'month', 'year', 'all'];
+const PLAN_FILTERS: PlanFilter[] = ['all', 'trial', 'paid', 'none'];
+const STATUS_CLASS: Record<Status, string> = {
+  active: 'bg-success/15 text-success',
+  expired: 'bg-warning/15 text-warning',
+  paused: 'bg-muted/15 text-muted',
+  closing: 'bg-warning/15 text-warning',
+  closed: 'bg-error/15 text-error',
+};
+const STATUS_DOT: Record<Status, string> = {
+  active: 'bg-success',
+  expired: 'bg-warning',
+  paused: 'bg-muted',
+  closing: 'bg-warning',
+  closed: 'bg-error',
+};
 
 /** Platform admin: shops (your customers), subscription revenue and shop sales by period. */
 @Component({
@@ -75,6 +121,39 @@ const PERIODS: Period[] = ['today', 'week', 'month', 'year', 'all'];
         </button>
       }
     </div>
+
+    <!-- Shop closure requests: settle money, then approve -->
+    @if (requests().length) {
+      <section class="mt-4 rounded-2xl border-2 border-warning/50 bg-warning/5 p-4">
+        <h2 class="font-semibold">{{ config.label('dash.closureRequests', { count: requests().length }) }}</h2>
+        <p class="text-xs text-muted">{{ config.label('dash.closureHint') }}</p>
+        <ul class="mt-3 grid gap-2">
+          @for (r of requests(); track r.id) {
+            <li class="rounded-xl border border-border bg-surface p-3 text-sm">
+              <p class="font-semibold">{{ r.shop }}</p>
+              <p class="text-xs text-muted">{{ r.owner_name }} · {{ phone(r.owner_phone) }} · {{ config.date(r.created_at) }}</p>
+              @if (r.reason) {
+                <p class="mt-2 rounded-lg bg-background px-3 py-2">“{{ r.reason }}”</p>
+              }
+              <p class="mt-2 text-xs">
+                {{ config.label('dash.openOrders', { count: r.open_orders }) }} · {{ config.label('dash.col.paid') }} {{ config.money(r.paid_total) }}
+                @if (r.valid_till) { · {{ config.label('dash.validTill', { date: config.date(r.valid_till) }) }} }
+              </p>
+              <input
+                [class]="inputClass + ' mt-2 text-sm'"
+                [placeholder]="config.label('dash.decisionNote')"
+                [value]="decisionNotes()[r.id] ?? ''"
+                (input)="setDecisionNote(r.id, $any($event.target).value)"
+              />
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                <button type="button" class="rounded-xl border border-border px-3 py-2 font-medium disabled:opacity-50" [disabled]="busy()" (click)="decide(r, false)">{{ config.label('dash.rejectClosure') }}</button>
+                <button type="button" class="rounded-xl bg-error px-3 py-2 font-semibold text-white disabled:opacity-50" [disabled]="busy()" (click)="decide(r, true)">{{ config.label('dash.approveClosure') }}</button>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
 
     @if (totals(); as t) {
       <!-- Headline numbers -->
@@ -102,7 +181,7 @@ const PERIODS: Period[] = ['today', 'week', 'month', 'year', 'all'];
       </section>
 
       <!-- Shop status -->
-      <section class="mt-2 grid grid-cols-3 gap-2 text-center">
+      <section class="mt-2 grid grid-cols-3 gap-2 text-center sm:grid-cols-5">
         @for (s of statusTiles(); track s.key) {
           <button
             type="button"
@@ -165,16 +244,28 @@ const PERIODS: Period[] = ['today', 'week', 'month', 'year', 'all'];
           <h2 class="text-sm font-semibold">{{ config.label('dash.shopList') }} ({{ shops().length }})</h2>
           <input
             type="search"
-            class="w-40 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary sm:w-56"
-            [placeholder]="config.label('common.search')"
+            class="w-44 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary sm:w-64"
+            [placeholder]="config.label('dash.searchPlaceholder')"
             [value]="query()"
             (input)="query.set($any($event.target).value)"
           />
         </div>
+        <div class="no-scrollbar -mx-4 mt-2 flex gap-2 overflow-x-auto px-4">
+          @for (f of planFilters; track f) {
+            <button
+              type="button"
+              class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium"
+              [class]="planFilter() === f ? 'border-primary bg-primary text-on-primary' : 'border-border bg-surface'"
+              (click)="planFilter.set(f)"
+            >
+              {{ config.label('dash.planFilter.' + f) }}
+            </button>
+          }
+        </div>
         <ul class="mt-2 grid gap-2 lg:grid-cols-2">
           @for (s of shops(); track s.id) {
             @let st = status(s);
-            <li class="min-w-0 rounded-2xl border border-border bg-surface p-4">
+            <li class="min-w-0 rounded-2xl border border-border bg-surface p-4" [class.opacity-70]="st === 'closed'">
               <div class="flex items-center gap-3">
                 <app-avatar [url]="s.owner_avatar" [name]="s.owner_name || s.name" [size]="44" />
                 <div class="min-w-0 flex-1">
@@ -190,16 +281,43 @@ const PERIODS: Period[] = ['today', 'week', 'month', 'year', 'all'];
                 <div><dt class="text-muted">{{ config.label('dash.col.paid') }}</dt><dd class="font-semibold tabular-nums">{{ config.money(s.paid_total) }}</dd></div>
               </dl>
               <p class="mt-2 text-xs text-muted">
+                @if (s.plan) {
+                  <span class="mr-1 rounded-full px-2 py-0.5 font-semibold" [class]="+(s.plan_price ?? 0) > 0 ? 'bg-primary/10 text-primary' : 'bg-info/15 text-info'">
+                    {{ config.label(+(s.plan_price ?? 0) > 0 ? 'dash.planFilter.paid' : 'dash.planFilter.trial') }}
+                  </span>
+                }
                 {{ s.plan || config.label('dash.noPlan') }}
                 @if (s.subscription_expires_at) { · {{ config.label('dash.validTill', { date: config.date(s.subscription_expires_at) }) }} }
                 @if (s.last_order_at) { · {{ config.label('dash.lastOrder', { date: config.date(s.last_order_at) }) }} }
+                @if (s.closed_at) { · {{ config.label('dash.closedOn', { date: config.date(s.closed_at) }) }} }
               </p>
-              <div class="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-sm">
+              @if (s.payments_list.length) {
+                <button type="button" class="mt-2 text-xs font-medium text-primary" (click)="toggleHistory(s.id)">
+                  {{ config.label(openHistory() === s.id ? 'dash.hidePayments' : 'dash.showPayments', { count: s.payments_list.length }) }}
+                </button>
+                @if (openHistory() === s.id) {
+                  <ul class="mt-2 grid gap-1 rounded-xl bg-background p-2 text-xs">
+                    @for (p of s.payments_list; track $index) {
+                      <li class="flex justify-between gap-2">
+                        <span class="min-w-0 truncate">
+                          {{ config.date(p.paid_at) }} · {{ p.plan }}
+                          @if (p.valid_until) { → {{ config.date(p.valid_until) }} }
+                          @if (p.note) { · {{ p.note }} }
+                        </span>
+                        <b class="shrink-0 tabular-nums">{{ config.money(p.amount) }}</b>
+                      </li>
+                    }
+                  </ul>
+                }
+              }
+              <div class="mt-3 grid gap-2 border-t border-border pt-3 text-sm" [class]="s.state === 'closed' ? 'grid-cols-2' : 'grid-cols-3'">
                 <button type="button" class="rounded-xl bg-primary px-2 py-2 font-semibold text-on-primary" (click)="openPayment(s)">{{ config.label('dash.recordPayment') }}</button>
                 <a [href]="'/s/' + s.slug" target="_blank" rel="noopener" class="rounded-xl border border-border px-2 py-2 text-center font-medium">{{ config.label('dash.openStore') }}</a>
-                <button type="button" class="rounded-xl border px-2 py-2 font-medium" [class]="s.is_active ? 'border-error/40 text-error' : 'border-success/40 text-success'" (click)="toggleActive(s)">
-                  {{ config.label(s.is_active ? 'dash.deactivate' : 'dash.activate') }}
-                </button>
+                @if (s.state !== 'closed') {
+                  <button type="button" class="rounded-xl border px-2 py-2 font-medium" [class]="s.is_active ? 'border-error/40 text-error' : 'border-success/40 text-success'" (click)="toggleActive(s)">
+                    {{ config.label(s.is_active ? 'dash.deactivate' : 'dash.activate') }}
+                  </button>
+                }
               </div>
             </li>
           }
@@ -252,6 +370,7 @@ export class AdminDashboard {
   private readonly toast = inject(ToastService);
 
   protected readonly periods = PERIODS;
+  protected readonly planFilters = PLAN_FILTERS;
   protected readonly inputClass =
     'w-full rounded-xl border border-border bg-background px-3 py-2.5 outline-none focus:border-primary';
 
@@ -262,6 +381,10 @@ export class AdminDashboard {
   private readonly allShops = signal<ShopRow[]>([]);
   protected readonly query = signal('');
   protected readonly statusFilter = signal('');
+  protected readonly planFilter = signal<PlanFilter>('all');
+  protected readonly requests = signal<ClosureRequest[]>([]);
+  protected readonly decisionNotes = signal<Record<string, string>>({});
+  protected readonly openHistory = signal('');
   protected readonly plans = signal<Plan[]>([]);
   protected readonly paying = signal<ShopRow | null>(null);
   protected readonly planId = signal('');
@@ -271,20 +394,22 @@ export class AdminDashboard {
 
   protected readonly statusTiles = computed(() => {
     const t = this.totals();
-    return [
-      { key: 'active', value: t?.active ?? 0, dot: 'bg-success' },
-      { key: 'expired', value: t?.expired ?? 0, dot: 'bg-warning' },
-      { key: 'deactivated', value: t?.deactivated ?? 0, dot: 'bg-error' },
-    ];
+    return (['active', 'expired', 'paused', 'closing', 'closed'] as Status[]).map((key) => ({
+      key,
+      value: t?.[key] ?? 0,
+      dot: STATUS_DOT[key],
+    }));
   });
 
   protected readonly shops = computed(() => {
     const q = this.query().trim().toLowerCase();
     const f = this.statusFilter();
+    const plan = this.planFilter();
     return this.allShops().filter(
       (s) =>
         (!f || this.status(s) === f) &&
-        (!q || `${s.name} ${s.owner_name ?? ''} ${s.owner_phone ?? ''}`.toLowerCase().includes(q)),
+        (plan === 'all' || this.planKind(s) === plan) &&
+        (!q || `${s.name} ${s.slug} ${s.owner_name ?? ''} ${s.owner_phone ?? ''}`.toLowerCase().includes(q)),
     );
   });
 
@@ -337,13 +462,19 @@ export class AdminDashboard {
     const { from, to, bucket } = this.range();
     this.bucket.set(bucket);
     try {
-      const data = await this.supabase.callSecureRpc<{ totals: Totals; series: Point[]; shops: ShopRow[] }>(
+      const data = await this.supabase.callSecureRpc<{
+        totals: Totals;
+        series: Point[];
+        shops: ShopRow[];
+        closure_requests: ClosureRequest[];
+      }>(
         'admin_dashboard',
         { p_from: from.toISOString(), p_to: to.toISOString(), p_bucket: bucket },
       );
       this.totals.set(data.totals);
       this.series.set(data.series);
       this.allShops.set(data.shops);
+      this.requests.set(data.closure_requests ?? []);
     } catch (err) {
       this.toast.error(err);
     }
@@ -357,14 +488,48 @@ export class AdminDashboard {
     }
   }
 
-  protected status(s: ShopRow): 'active' | 'expired' | 'deactivated' {
-    if (!s.is_active) return 'deactivated';
+  protected status(s: ShopRow): Status {
+    if (s.state !== 'open') return s.state;
     if (s.subscription_expires_at && new Date(s.subscription_expires_at) <= new Date()) return 'expired';
     return 'active';
   }
 
-  protected statusClass(st: string): string {
-    return st === 'active' ? 'bg-success/15 text-success' : st === 'expired' ? 'bg-warning/15 text-warning' : 'bg-error/15 text-error';
+  protected statusClass(st: Status): string {
+    return STATUS_CLASS[st];
+  }
+
+  /** Trial = a free plan, paid = a priced plan, none = never given a plan. */
+  private planKind(s: ShopRow): PlanFilter {
+    if (!s.plan) return 'none';
+    return +(s.plan_price ?? 0) > 0 ? 'paid' : 'trial';
+  }
+
+  protected toggleHistory(id: string): void {
+    this.openHistory.set(this.openHistory() === id ? '' : id);
+  }
+
+  protected setDecisionNote(id: string, note: string): void {
+    this.decisionNotes.update((n) => ({ ...n, [id]: note }));
+  }
+
+  /** Approve closes the shop end to end (open orders cancelled, store off); reject keeps it running. */
+  protected async decide(r: ClosureRequest, approve: boolean): Promise<void> {
+    const key = approve ? 'dash.confirmApproveClosure' : 'dash.confirmRejectClosure';
+    if (!confirm(this.config.label(key, { shop: r.shop, count: r.open_orders }))) return;
+    this.busy.set(true);
+    try {
+      await this.supabase.callSecureRpc('decide_shop_closure', {
+        p_request_id: r.id,
+        p_approve: approve,
+        p_note: this.decisionNotes()[r.id] ?? '',
+      });
+      this.toast.show(approve ? 'closureApproved' : 'closureRejected', 'success', { shop: r.shop });
+      await this.load();
+    } catch (err) {
+      this.toast.error(err);
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected phone(p: string | null): string {

@@ -18,8 +18,12 @@ export const NAV: NavItem[] = [
   { path: '/customers', label: 'nav.customers', icon: 'users', permission: 'can_manage_own_shop' },
   { path: '/my-store', label: 'nav.myStore', icon: 'store', permission: 'can_manage_own_shop' },
   { path: '/vendors', label: 'nav.vendors', icon: 'truck', permission: 'can_manage_own_shop' },
-  { path: '/support', label: 'nav.support', icon: 'help', permission: null },
+  // Platform admin: only admin screens, no shop screens.
+  { path: '/admin/dashboard', label: 'nav.dashboard', icon: 'chart', permission: 'can_manage_shops' },
+  { path: '/admin/login-codes', label: 'nav.loginCodes', icon: 'key', permission: 'can_view_login_codes' },
+  { path: '/admin/settings', label: 'nav.settings', icon: 'settings', permission: 'can_manage_settings' },
   { path: '/admin', label: 'nav.admin', icon: 'shield', permission: 'can_access_admin' },
+  { path: '/support', label: 'nav.support', icon: 'help', permission: null, hideWith: 'can_access_admin' },
 ];
 
 export const BOTTOM_BAR_SIZE = 4;

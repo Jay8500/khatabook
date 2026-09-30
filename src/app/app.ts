@@ -32,7 +32,7 @@ export class App {
 
   /** Red count on nav items, e.g. pending login codes on Admin. */
   protected readonly badges = computed<Record<string, number>>(() => ({
-    '/admin': this.codeWatch.pending(),
+    '/admin/login-codes': this.codeWatch.pending(),
     '/shop-orders': this.orderWatch.requested(),
   }));
   protected readonly moreBadge = computed(() =>
@@ -46,10 +46,13 @@ export class App {
     ),
     { initialValue: this.router.url },
   );
-  /** Shop deactivated by the platform admin (owner/staff view). */
-  protected readonly shopPaused = computed(
-    () => (this.auth.shop() as unknown as { is_active?: boolean } | null)?.is_active === false && !this.auth.can('can_manage_shops'),
-  );
+  /** Shop paused or closed by the platform admin (owner/staff view): label key, or null. */
+  protected readonly shopBanner = computed(() => {
+    const shop = this.auth.shop() as unknown as { is_active?: boolean; closed_at?: string | null } | null;
+    if (!shop || this.auth.can('can_manage_shops')) return null;
+    if (shop.closed_at) return 'shop.closedBanner';
+    return shop.is_active === false ? 'shop.paused' : null;
+  });
   protected readonly onProfile = computed(() => this.url().startsWith('/profile'));
 
   protected readonly nav = computed(() =>
